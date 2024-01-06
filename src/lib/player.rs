@@ -1,13 +1,25 @@
+use crate::*;
+pub use map::*;
+use rltk::{Rltk, VirtualKeyCode};
+use specs::prelude::*;
+
+use specs_derive::Component;
+use std::cmp::{max, min};
 #[derive(Component)]
-struct Player {}
+pub struct Player {}
+
+#[derive(Component)]
+pub struct LeftMover {}
+
 // *****system*********************
 
 // LeftWalker system
-struct LeftWalker {}
+#[derive(Component)]
+pub struct LeftWalker {}
 
 impl<'a> System<'a> for LeftWalker {
     // trait 也是需要的数据的，trait 的数据是哪来的的，来自她正在实现的struct
-    type System = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>); // 移动需要修改位置的数据
+    type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>); // 移动需要修改位置的数据
     fn run(&mut self, (lefty, mut pos): Self::SystemData) {
         for (_lefty, pos) in (&lefty, &mut pos).join() {
             pos.x -= 1;
@@ -21,9 +33,9 @@ impl<'a> System<'a> for LeftWalker {
 // player move
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
-    let mut players = ecs.write_storage::<Palyer>();
+    let mut players = ecs.write_storage::<Player>();
 
-    let map = ecs.fetch::<vec<TileType>>();
+    let map = ecs.fetch::<Vec<TileType>>();
 
     for (_player, pos) in (&mut players, &mut positions).join() {
         let des_idx = xy_idx(pos.x + delta_x, pos.y + delta_y);
