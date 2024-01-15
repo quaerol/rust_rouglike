@@ -13,7 +13,10 @@ fn main() -> rltk::BError {
         .build()?;
 
     // create world,because entity will add in world,so world is mutable
-    let mut gs = State { ecs: World::new() };
+    let mut gs = State {
+        ecs: World::new(),
+        runstate: RunState::Running,
+    };
 
     // -------------register component
     gs.ecs.register::<Position>();
@@ -22,12 +25,17 @@ fn main() -> rltk::BError {
     // gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Monster>();
+    gs.ecs.register::<Name>();
+
     gs.ecs.register::<Viewshed>(); // 将组件注册到系统中
 
     // --------------add source in world  ,shared data the whole ecs can use
     let map = Map::new_map_rooms_and_corridors();
     // 玩家的位置在第一个房间的中心位置
     let (player_x, player_y) = map.rooms[0].center();
+
+    // 将玩家的位置作为 资源 插入 ecs 中
+    gs.ecs.insert(Point::new(player_x, player_y));
 
     // ------------------create entity
     gs.ecs
@@ -48,20 +56,30 @@ fn main() -> rltk::BError {
             range: 8,
             dirty: true,
         })
+        .with(Name {
+            name: "Player".to_string(),
+        })
         .build();
 
     // ----------------------怪物生成器代码------------------------
     // 在每个房间的中间添加一个怪物
     let mut rng = rltk::RandomNumberGenerator::new();
-    for room in map.rooms.iter().skip(1) {
+    for (i, room) in map.rooms.iter().skip(1).enumerate() {
         let (x, y) = room.center();
 
         let glyph: rltk::FontCharType;
+        let name: String;
         let roll = rng.roll_dice(1, 2);
         // 怪物的种类 1 是 哥布林 其余的是 半兽人
         match roll {
-            1 => glyph = rltk::to_cp437('g'),
-            _ => glyph = rltk::to_cp437('o'),
+            1 => {
+                glyph = rltk::to_cp437('g');
+                name = "Goblin".to_string();
+            }
+            _ => {
+                glyph = rltk::to_cp437('o');
+                name = "Orc".to_string();
+            }
         }
         gs.ecs
             .create_entity()
@@ -77,6 +95,9 @@ fn main() -> rltk::BError {
                 dirty: true,
             })
             .with(Monster {})
+            .with(Name {
+                name: format!("{} #{}", &name, i),
+            })
             .build();
     }
 

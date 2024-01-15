@@ -1,6 +1,6 @@
 use crate::*;
 pub use map::*;
-use rltk::{Rltk, VirtualKeyCode};
+use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 
 use specs_derive::Component;
@@ -44,11 +44,16 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
             // 玩家移动，看到的东西已经改变，viewshed 的 dirty 标志改变
             viewshed.dirty = true;
+
+            // 在玩家移动的时候更新 玩家位置的资源
+            let mut ppos = ecs.write_resource::<Point>();
+            ppos.x = pos.x;
+            ppos.y = pos.y;
         }
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut Rltk) {
+pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     if let Some(key) = ctx.key {
         match key {
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
@@ -65,7 +70,11 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) {
             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
                 try_move_player(0, 1, &mut gs.ecs)
             }
-            _ => {}
+            _ => {
+                return RunState::Paused;
+            }
         }
     }
+
+    RunState::Running
 }
