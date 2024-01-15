@@ -26,3 +26,7 @@ pub struct Viewshed {
 }
 #[derive(Component)]
 pub struct Player {}
+
+// 怪物的组件 ，让怪物进行思考
+#[derive(Component, Debug)]
+pub struct Monster {}

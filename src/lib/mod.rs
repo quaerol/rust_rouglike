@@ -7,12 +7,14 @@ pub use map::*;
 pub mod player;
 pub use player::*;
 pub mod visibility_system;
+pub use visibility_system::*;
+pub mod monster_ai_system;
+pub use monster_ai_system::*;
 use rltk::{GameState, Rltk};
 use specs::Join;
 use specs::RunNow;
 use specs::World;
 use specs::WorldExt;
-pub use visibility_system::*;
 
 // ------------------------World state section------------------------
 pub struct State {
@@ -23,8 +25,10 @@ impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs); // 这里运行实际的系统
-                                // let mut lw = LeftWalker {};
-                                // lw.run_now(&self.ecs); // LeftWalker 的run  需要修改 State 中的数据
+
+        // 运行怪物的AI系统
+        let mut mob = MonsterAI {};
+        mob.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -42,12 +46,21 @@ impl GameState for State {
         // let map = self.ecs.fetch::<Map>();
         draw_map(&self.ecs, ctx);
 
-        // get entity with component
-        let positions = self.ecs.read_storage::<Position>(); // 这是什么用法
-        let renderables = self.ecs.read_storage::<Renderable>(); // 这是什么用法
-                                                                 // draw entities
+        // 渲染循环
+        // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
+        let positions = self.ecs.read_storage::<Position>();
+        let renderables = self.ecs.read_storage::<Renderable>();
+
+        // 拿到地图
+        let map = self.ecs.fetch::<Map>();
+
+        // draw entities
         for (pos, render) in (&positions, &renderables).join() {
-            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            let idx = map.xy_idx(pos.x, pos.y);
+            // 检查怪物占用的 tile 是否可见，
+            if map.visible_tiles[idx] {
+                ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            }
         }
     }
 }
