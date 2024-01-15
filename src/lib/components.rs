@@ -30,3 +30,15 @@ pub struct Player {}
 // 怪物的组件 ，让怪物进行思考
 #[derive(Component, Debug)]
 pub struct Monster {}
+
+// 怪物应该有名字，
+#[derive(Component, Debug)]
+pub struct Name {
+    pub name: String,
+}
+
+// 玩家 和 怪物都应该有这个组件，被阻挡的TIle
+#[derive(Component, Debug)]
+pub struct BlocksTile {}
+
+// 怪物和玩家的战斗数据

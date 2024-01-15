@@ -18,6 +18,7 @@ pub struct Map {
     pub width: i32,
     pub revealed_tiles: Vec<bool>, // 记录玩家看到过的地图
     pub visible_tiles: Vec<bool>,  // 将记住了但是看不到的内容变灰
+    pub blocked: Vec<bool>,        // 哪些tile不可以走上去，防止玩家和怪物重叠
 }
 impl Map {
     // 如何将坐标映射魏地图数组的下标
@@ -37,6 +38,7 @@ impl Map {
             height: 50,
             revealed_tiles: vec![false; 80 * 50], // 最开始玩家没有看到任何一个tile
             visible_tiles: vec![false; 80 * 50],
+            blocked: vec![false; 80 * 50],
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -116,6 +118,22 @@ impl Map {
             }
         }
     }
+    // 是否退出的有效
+    fn is_exit_valid(&self, x: i32, y: i32) -> bool {
+        // 边界检查
+        if x < 1 || x > self.width || y < 1 || y > self.height - 1 {
+            return false;
+        }
+        let idx = self.xy_idx(x, y);
+        // 不被阻挡的才可以exit
+        !self.blocked[idx]
+    }
+    // 填充(populate)被阻挡的tile  wall was blocked
+    pub fn populate_blocked(&mut self) {
+        for (i, tile) in self.tiles.iter().enumerate() {
+            self.blocked[i] = *tile == TileType::Wall;
+        }
+    }
 }
 
 // RLTK 并不关心 我们的地图如何实现，只要你实现了他提供的trait ,RLTK 实现了对对应的trait 的逻辑
@@ -130,6 +148,50 @@ impl BaseMap for Map {
     fn is_opaque(&self, idx: usize) -> bool {
         // 如果图块时墙，返回true 否则 返回 false
         self.tiles[idx as usize] == TileType::Wall
+    }
+
+    // 获得有效的离开的tile
+    fn get_available_exits(&self, idx: usize) -> rltk::SmallVec<[(usize, f32); 10]> {
+        // 将存在的tile 放进一个 vector
+        let mut exits = rltk::SmallVec::new();
+        let x = idx as i32 % self.width; // 这里的idx 是一维的 余数是y，除数是x
+        let y = idx as i32 / self.width;
+        let w = self.width as usize;
+
+        // Cardinal directions 四个方向 移动
+        if self.is_exit_valid(x - 1, y) {
+            exits.push((idx - 1, 1.0)) //
+        };
+        if self.is_exit_valid(x + 1, y) {
+            exits.push((idx + 1, 1.0))
+        };
+        if self.is_exit_valid(x, y - 1) {
+            exits.push((idx - w, 1.0))
+        };
+        if self.is_exit_valid(x, y + 1) {
+            exits.push((idx + w, 1.0))
+        };
+        // Diagonals 对角线方向移动
+        if self.is_exit_valid(x - 1, y - 1) {
+            exits.push(((idx - w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y - 1) {
+            exits.push(((idx - w) + 1, 1.45));
+        }
+        if self.is_exit_valid(x - 1, y + 1) {
+            exits.push(((idx + w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y + 1) {
+            exits.push(((idx + w) + 1, 1.45));
+        }
+        exits
+    }
+    // 根据 tilt 索引 得到 这两个tile 之间的距离
+    fn get_pathing_distance(&self, idx1: usize, idx2: usize) -> f32 {
+        let w = self.width as usize;
+        let p1 = Point::new(idx1 % w, idx1 / w);
+        let p2 = Point::new(idx2 % w, idx2 / w);
+        rltk::DistanceAlg::Pythagoras.distance2d(p1, p2)
     }
 }
 // retrieve the the map and the player's viewshed ,it only draw tiles present in the viewshed
