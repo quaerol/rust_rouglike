@@ -1,4 +1,4 @@
-use rltk::{GameState, Rltk, RGB};
+use rltk::{GameState, Point, Rltk, RGB};
 use specs::prelude::*;
 
 pub use map::*;
@@ -10,8 +10,7 @@ fn main() -> rltk::BError {
     // initialise context
     let context = RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
-        .build()
-        .unwrap();
+        .build()?;
 
     // create world,because entity will add in world,so world is mutable
     let mut gs = State { ecs: World::new() };
@@ -22,14 +21,14 @@ fn main() -> rltk::BError {
     // gs.ecs.register::<LeftWalker>();
     // gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Monster>();
     gs.ecs.register::<Viewshed>(); // 将组件注册到系统中
 
     // --------------add source in world  ,shared data the whole ecs can use
     let map = Map::new_map_rooms_and_corridors();
     // 玩家的位置在第一个房间的中心位置
     let (player_x, player_y) = map.rooms[0].center();
-    // 将map 插到world 中
-    gs.ecs.insert(map);
+
     // ------------------create entity
     gs.ecs
         .create_entity()
@@ -51,18 +50,39 @@ fn main() -> rltk::BError {
         })
         .build();
 
-    // for i in 0..10 {
-    //     gs.ecs
-    //         .create_entity()
-    //         .with(Position { x: i * 7, y: 20 }) //玩家的位置是第一个rooms的中心位置
-    //         .with(Renderable {
-    //             glyph: rltk::to_cp437('x'),
-    //             fg: RGB::named(rltk::YELLOW),
-    //             bg: RGB::named(rltk::BLACK),
-    //         })
-    //         .with(LeftMover {}) // LeftMover 标记需要移动的
-    //         .build();
-    // }
+    // ----------------------怪物生成器代码------------------------
+    // 在每个房间的中间添加一个怪物
+    let mut rng = rltk::RandomNumberGenerator::new();
+    for room in map.rooms.iter().skip(1) {
+        let (x, y) = room.center();
+
+        let glyph: rltk::FontCharType;
+        let roll = rng.roll_dice(1, 2);
+        // 怪物的种类 1 是 哥布林 其余的是 半兽人
+        match roll {
+            1 => glyph = rltk::to_cp437('g'),
+            _ => glyph = rltk::to_cp437('o'),
+        }
+        gs.ecs
+            .create_entity()
+            .with(Position { x, y })
+            .with(Renderable {
+                glyph: glyph,
+                fg: RGB::named(rltk::RED),
+                bg: RGB::named(rltk::BLACK),
+            })
+            .with(Viewshed {
+                visible_tiles: Vec::new(),
+                range: 8,
+                dirty: true,
+            })
+            .with(Monster {})
+            .build();
+    }
+
+    // ----------------------------------------------------------------
+    // 将map 插到world 中
+    gs.ecs.insert(map);
 
     // game mian loop
     rltk::main_loop(context, gs)
