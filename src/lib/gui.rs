@@ -2,8 +2,19 @@
 use rltk::{ RGB, Rltk, Console };
 use specs::prelude::*;
 use super::{CombatStats, Player};
-// 使用rltk specs
+
 // 不能光看，开始要写
+
+// 物品菜单的状态
+#[derive(PartialEq, Copy,Clone)]
+pub enum ItemMenuResult {
+    Cancel,
+    NoResponse,
+    Seleted,
+}
+
+
+// 绘制UI
 pub fn draw_ui(ecs:World,ctx:&mut Rltk){
     ctx.draw_box(0, 43, 79, 6, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
     // 在 ui 中显示 玩家的生命值信息
@@ -39,6 +50,8 @@ pub fn draw_ui(ecs:World,ctx:&mut Rltk){
     // 画出 工具提示的支持
     draw_tooltips();
 }
+
+// 画出工具提示
 fn draw_tooltips(ecs:&World,ctx:&mut Rltk){
     let map = ecs.fetch::<Map>();
     let names = ecs.read_storage::<Name>();
@@ -100,6 +113,113 @@ fn draw_tooltips(ecs:&World,ctx:&mut Rltk){
                 y += 1;
             }
             ctx.print_color(arrow_pos.x, arrow_pos.y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &"<-".to_string());
+        }
+    }
+}
+
+// 显示库存
+pub fn show_inventory(gs:&mut State,ctx:&mut Rltk) -> ItemMenuResult{
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let names = gs.ecs>read_storage::<Name>();
+    let backpack = gs.ecs.read_storage::<InBackpacks>();
+    let entities = gs.ecs.entities();
+
+    // 闭包过滤
+    let inventory = (&backpacks, &names).join().filter(|item| item.0.owner == *player_entity);
+    // 菜单的大小和物品数量相关 计算 背包中的所有的物品
+    let count = inventory.count();
+
+    let mut y = (25 - (count - 2)) as i32;
+    // 绘制 菜单 框 和 标题 和 描述
+    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
+    ctx.print_color(18, y-2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Inventory");
+    ctx.print_color(18, y+count as i32+1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "ESCAPE to cancel");
+
+    // 可以装备的物品, 一个物品 就一个可以装配
+    let mut equippable: Vec<Entity> = Vec::new();
+    // 物品的序号 (a) (b) (c)
+    let mut j = 0;
+
+    // 过滤 物品的所有者 是 player 
+    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity ) {
+        // 设置显示的物品的序号
+        ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437('('));
+        ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), 97+j as rltk::FontCharType);
+        ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437(')'));
+
+        // 物品的名字  j 是 物品的序号 y 是物品渲染的位置
+        ctx.print(21,y,&name.name.to_string());
+        equippable.push(entity);
+
+        y += 1;
+        j += 1;
+
+    }
+
+    // 匹配  Rltk 中的 键
+    match ctx.key{
+        None => ItemMenuResult::NoResponse,
+        Some(key) => {
+            match key{
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel,None)}
+                _ => {
+                    let selection = rltk::letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        // 得到 对应按键的物品 并返回
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize])); 
+                    }
+                    (ItemMenuResult::NoResponse,None)
+                }
+            }
+        }
+    }
+}
+
+// 删除项目的 菜单
+pub fn drop_item_menu(gs:&mut State,ctx:&mut Rltk)->(ItemMenuResult, Option<Entity>){
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let names = gs.ecs.read_storage::<Name>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
+    let entities = gs.ecs.entities();
+
+    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity );
+    // 统计库存
+    let count = inventory.count();
+
+    let mut y = (25 - (count / 2)) as i32;
+    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
+    ctx.print_color(18, y-2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Drop Which Item?");
+    ctx.print_color(18, y+count as i32+1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "ESCAPE to cancel");
+
+    let mut equippable : Vec<Entity> = Vec::new();
+    let mut j = 0;
+    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity ) {
+        ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437('('));
+        // a is ASCII 97
+        ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), 97+j as rltk::FontCharType);
+        ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437(')'));
+
+        ctx.print(21, y, &name.name.to_string());
+        equippable.push(entity);
+        y += 1;
+        j += 1;
+    }
+
+    // 匹配按键
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => {
+            match key {
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
+                _ => { 
+                    //  得到选中物品的按键
+                    let selection = rltk::letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
+                    }  
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
         }
     }
 }

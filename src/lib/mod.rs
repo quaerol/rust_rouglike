@@ -1,3 +1,9 @@
+use rltk::{GameState, Rltk};
+use specs::Join;
+use specs::RunNow;
+use specs::World;
+use specs::WorldExt;
+
 pub mod rect;
 pub use rect::*;
 pub mod components;
@@ -10,19 +16,21 @@ pub mod visibility_system;
 pub use visibility_system::*;
 pub mod monster_ai_system;
 pub use monster_ai_system::*;
-use rltk::{GameState, Rltk};
-use specs::Join;
-use specs::RunNow;
-use specs::World;
-use specs::WorldExt;
 
 // ------------------------World state section------------------------
-// turn-base game,回合制游戏，game state
+
+// turn-base game,回合制游戏，game state 游戏循环的状态
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
 #[derive(PartialEq, Copy, Clone, Debug)] // derive 宏，自动为下面的结构实现这些trait , partialeq runstate 之间可以比较
 pub enum RunState {
-    Paused,
-    Running,
+    AwaitingInput,
+    Prerun,
+    PlayerTurn,
+    MonsterTurn,
+    // 展示库存的状态
+    ShowInventory,
+    // 显示可以丢弃物品的菜单
+    ShowDropItem,
 }
 
 pub struct State {
@@ -38,6 +46,19 @@ impl State {
         // 运行怪物的AI系统
         let mut mob = MonsterAI {};
         mob.run_now(&self.ecs);
+
+        // 物品收集的系统
+        let mut pickup = ItemCollectionSystem{};
+        pickup.run_now(&self.ecs);
+
+        // 药水使用系统
+        let mut potions = PotionUseSystem{};
+        potions.run_now(&self.ecs);
+
+        // 物品丢弃系统
+        let mut drop_items = ItemDropSystem{};
+        drop_items.run_now(&self.ecs);
+
         self.ecs.maintain();
     }
 }
@@ -57,6 +78,8 @@ impl GameState for State {
             // 怪物只会在玩家移动是考虑做什么
             self.runstate = player_input(self, ctx);
         }
+
+        
         // 从world 中得到地图数据
         // let map = self.ecs.fetch::<Map>();
         draw_map(&self.ecs, ctx);
@@ -70,11 +93,54 @@ impl GameState for State {
         let map = self.ecs.fetch::<Map>();
 
         // draw entities
-        for (pos, render) in (&positions, &renderables).join() {
+        let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+        data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order) );
+        for (pos, render) in data.iter(){
             let idx = map.xy_idx(pos.x, pos.y);
             // 检查怪物占用的 tile 是否可见，
             if map.visible_tiles[idx] {
                 ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            }
+        }
+
+        // 根据游戏循环不同的状态， 执行不同的操作
+        // 显示库存
+        RunState::ShowInventory => {
+            // 得到 使用的物品
+            let result = gui::show_inventory(self,ctx);
+            match result.0 {
+                gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                gui::ItemMenuResult::NoResponse => {}
+                gui::ItemMenuResult::Selected => {
+                    // 得到选中的物体
+                    let item_entity = result.1.unwarp();
+                    // 为选中的物体 添加 WantsToDrinkPotion 组件，标记可以被饮用
+                    let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
+                    let names = self.ecs.read_storage::<Name>();
+                    let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                    gamelog.entries.push(format!("You try to use {}", names.get(item_entity).unwrap().name));
+                    newrunstate = RunState::AwaitingInput; 
+                }
+            }
+        }
+
+        // 显示丢弃的物品
+        RunState::ShowDropItem =>{
+            // 丢弃 物品的菜单
+            let result = gui::drop_item_menu(self,ctx);
+            // 匹配物品菜单的状态
+            match result.0 {
+                gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                gui::ItemMenuResult::NoResponse => {}
+                gui::ItemMenuResult::Selected => {
+                    // 得到 待 丢弃的物品
+                    let item_entity = result.1.unwrap();
+                    // 想要 丢弃 物品 的意图
+                    let mut intent = self.ecs.write_storage::<WantsToDropItem>();
+                    intent.insert(*self.ecs.fetch::<Entity>(), WantsToDropItem{ item: item_entity }).expect("Unable to insert intent");
+                    // 改变运行状态
+                    newrunstate = RunState::PlayerTurn;
+                }
             }
         }
     }

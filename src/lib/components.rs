@@ -14,6 +14,7 @@ pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order: i32,
 }
 
 // 视野的组件 玩家的敌人都有视野组件
@@ -35,4 +36,41 @@ pub struct Monster {}
 #[derive(Component, Debug)]
 pub struct Name {
     pub name: String,
+}
+
+// potion 药剂，生命药水
+
+#[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    // 恢复生命的数量
+    pub heal_amount : i32
+}
+
+// pcking up item 表示这个实体是否在 背包中
+#[derive(Component, Debug, Clone)]
+pub struct InBackpack {
+    pub owner : Entity
+}
+
+// -----------------------------意图组件-------------------------------
+// 想要被拾取的物品，物品是什么，被哪个拾取
+#[derive(Component, Debug, Clone)]
+pub struct WantsToPickupItem {
+    pub collected_by : Entity,
+    pub item : Entity
+}
+
+// 使用药水的意图组件
+#[derive(Component, Debug, Clone)]
+pub struct WantsToDrinkPotion[
+    pub potion: Entity
+]
+
+// 丢弃 物品的意图组件
+#[derive(Component, Debug, Clone)]
+pub struct WantsToDropItem{
+    pub item : Entity
 }
