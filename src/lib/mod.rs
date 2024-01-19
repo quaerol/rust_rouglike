@@ -1,3 +1,9 @@
+use rltk::{GameState, Rltk};
+use specs::Join;
+use specs::RunNow;
+use specs::World;
+use specs::WorldExt;
+
 pub mod rect;
 pub use rect::*;
 pub mod components;
@@ -12,12 +18,6 @@ pub mod monster_ai_system;
 pub use monster_ai_system::*;
 pub mod map_indexing_system;
 pub use map_indexing_system::*;
-
-use rltk::{GameState, Rltk};
-use specs::Join;
-use specs::RunNow;
-use specs::World;
-use specs::WorldExt;
 
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state

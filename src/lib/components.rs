@@ -14,6 +14,7 @@ pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order: i32,
 }
 
 // 视野的组件 玩家的敌人都有视野组件
@@ -42,3 +43,10 @@ pub struct Name {
 pub struct BlocksTile {}
 
 // 怪物和玩家的战斗数据
+#[derive(Component, Debug)]
+pub struct CombatStats {
+    pub max_hp: i32,
+    pub hp: i32,
+    pub defense: i32,
+    pub power: i32,
+}

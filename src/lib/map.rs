@@ -4,6 +4,11 @@ use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
 use specs::prelude::*;
 use std::cmp::{max, min};
 // -----------------------Map section --------------------
+// 公开的常量 地图的大小
+pub const MAPWIDTH : usize = 80;
+pub const MAPHEIGHT : usize = 43;
+pub const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
+
 // 地图的类型，枚举
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {

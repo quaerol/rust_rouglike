@@ -6,27 +6,6 @@ use specs::prelude::*;
 use specs_derive::Component;
 use std::cmp::{max, min};
 
-#[derive(Component)]
-pub struct LeftMover {}
-
-// *****system*********************
-// LeftWalker system
-#[derive(Component)]
-pub struct LeftWalker {}
-
-impl<'a> System<'a> for LeftWalker {
-    // trait 也是需要的数据的，trait 的数据是哪来的的，来自她正在实现的struct
-    type SystemData = (ReadStorage<'a, LeftMover>, WriteStorage<'a, Position>); // 移动需要修改位置的数据
-    fn run(&mut self, (lefty, mut pos): Self::SystemData) {
-        for (_lefty, pos) in (&lefty, &mut pos).join() {
-            pos.x -= 1;
-            if pos.x < 0 {
-                pos.x = 79;
-            }
-        }
-    }
-}
-
 // player move
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
