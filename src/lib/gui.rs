@@ -1,7 +1,7 @@
-use crate::{GameLog, Map, Name, Position, State};
+use crate::{GameLog, InBackpack, Map, Name, Position, State};
 
 use super::{CombatStats, Player};
-use rltk::{Console, Point, Rltk, RGB};
+use rltk::{Console, Point, Rltk, VirtualKeyCode, RGB};
 use specs::prelude::*;
 
 // UI 元素
@@ -12,7 +12,7 @@ use specs::prelude::*;
 pub enum ItemMenuResult {
     Cancel,
     NoResponse,
-    Seleted,
+    Selected,
 }
 
 // 绘制UI
@@ -177,14 +177,15 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
 }
 
 // 显示库存
-pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> ItemMenuResult {
+pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = gs.ecs.fetch::<Entity>();
     let player_entity = gs.ecs.fetch::<Entity>();
     let names = gs.ecs.read_storage::<Name>();
-    let backpack = gs.ecs.read_storage::<InBackpacks>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
     let entities = gs.ecs.entities();
 
     // 闭包过滤
-    let inventory = (&backpacks, &names)
+    let inventory = (&backpack, &names)
         .join()
         .filter(|item| item.0.owner == *player_entity);
     // 菜单的大小和物品数量相关 计算 背包中的所有的物品
@@ -217,7 +218,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> ItemMenuResult {
 
     // 可以装备的物品, 一个物品 就一个可以装配
     let mut equippable: Vec<Entity> = Vec::new();
-    // 物品的序号 (a) (b) (c)
+    // 物品的序号 (a) (b) (c) 97 是ASCII a, y 是绘制 的 位置
     let mut j = 0;
 
     // 过滤 物品的所有者 是 player
@@ -258,7 +259,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> ItemMenuResult {
 
     // 匹配  Rltk 中的 键
     match ctx.key {
-        None => ItemMenuResult::NoResponse,
+        None => (ItemMenuResult::NoResponse, None),
         Some(key) => {
             match key {
                 VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),

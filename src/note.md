@@ -1,6 +1,13 @@
-****### 2.6 Dealing Damage
+
+教程链接
+https://bfnightly.bracketproductions.com/chapter_9.html
+
+Specs 的 教程链接
+https://specs.amethyst.rs/docs/tutorials/01_intro
+
+### 2.6 Dealing Damage
 1, monster chase player
-monster 的行动路径，哪些房间是可以走过的 
+monster 的行动路径，哪些房间是可以走过的
 RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
 
 2，怪物不会走在各自身上，也不会走在玩家的身上，而且不会被阻塞在某一个地方
@@ -107,39 +114,87 @@ main context.with_post_scanlines
 ------------------------------------------------------------
 ### 2.8 items and inventory 物品和库存
 在UI中添加　基本物品　拾取　使用 丢弃(drop)
-2.8.1 composing items 组合物品
-面向对象 和 实体组件系统的区别是 你不是考虑实体的继承，而是什么
-组件组合成了这个实体
-so what makes up an item? thinking about it, an item can be
-said to have the following properties
+
+2.8.1 thinking about composing items 组合物品
+面向对象 和 实体组件系统的**区别是** 你不是考虑实体的继承，而是什么组件组合成了这个实体
+
+so what makes up an item? 
+thinking about it, an item can be said to have the following **properties** 
 Renderable, draw it 
 Position 
-InPack, indicate this item is stored
-Item, which implies that it can be picked up
-item need some way to indicate that it can be used
+InPack, indicate this item is stored 
+Item, which implies that it can be picked up 
+if it can be used, the item need some way to indicate that it can be used
+
 2.8.2 consistently random 始终随机
 计算机本质上是确定性的 - 因此（无需涉及密码学的东西）当您要求“随机”数字时，您实际上得到的是“非常难以预测序列中的下一个数字”。该序列由种子控制 - 使用相同的种子，您总是会得到相同的骰子
-make the RNG random number generator a resource, 作为一种资源，我们随时随地访问它
-2.8.3 improved spawning 优化怪物生成，支持生成物品
-整理玩家 和 怪物生成代码， 将他们都放入 spawner.rs
+make the RNG random number generator a resource, 作为一种资源，任何系统随时随地访问它
+main  ecs.insert(....)
+
+2.8.3 improved spawning 
+优化怪物生成，支持生成物品
+整理玩家 和 怪物生成代码， 将原来main.rs 中的 玩家和怪物生成代码都放入 spawner.rs
+
+
 2.8.4 spawn all the things, spawn multiple monster per room,
-2.8.5 health potion(药剂) entities,  add Item and Potion components to components.rs,register these in main.rs
+怪物 物品 在房间内随机生成
+
+2.8.5 health potion(药剂) entities,  
+添加组件来帮助定义药水
+add Item and Potion components to components.rs,register these in main.rs
+add new function spawner ->health_potion
 在房间中随机生成随机数量的potion
-2.8.6 picking up items, 拾取物品， create component InBackpack, represent an item being in someone's backpack
-玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent WantToPickupItem 来标记，
+
+2.8.6 picking up items, 拾取物品， 
+create component **InBackpack**, represent an item being in someone's backpack
+玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent **WantToPickupItem** 来标记，
 需要一个系统来处理 WantToPickupItem notices, 所以一个新的文件 inventory_system.rs inventory-库存
-添加一个按键 g 拾取物品,get_item()
+添加一个按键 g 拾取物品,add new function palyer.rs ->get_item()
+按下G键位如果玩家的位置和物品的位置重合,拾取物品,物品移除 position 组件, 添加 WantsToPickupItem 组件
 
 2.8.7 listing your inventory 列出库存，
-游戏循环的另一种状态，列出库存的时候，游戏循环进入另一种，其他系统停止运行
-gui -> show_inventory() gui 显示库存
+列出库存的时候，游戏循环进入另一个状态，
+extends main.rs -> RunMode
+gui.rs -> show_inventory() gui 显示库存
+I 键, 显示库存 inventory.
+main.rs -> tick(), we'll add another matchin 添加匹配 ShowInventory
+添加 show_inventory() in gui.rs
+
 2.8.8 using items 使用物品
-*在库存中选中一个item  并使用 
-2.8.9 dropping items 丢弃物品
-遵循 使用物品的模式，create an intent component,a meun to select it, and a system to perform the drop
+在库存中选中一个item  并使用 
+extend the menu to return an item and a result
+gui.rs -> show_inventory() gui 物品菜单栏的 按键操作 Escape
+RunState::ShowInventory 打印选中物品的名字
+
+玩家和 怪物 都可以使用物品 如 药水
+add 意图组件 WantsToDrinkPotion
+
+add PotionUseSystem in inventory_system.rs,this iterates all of the WantsToDrinkPotion intent objects, 然后回复 drinke 一定的生命值 Potion 
+由于所有放置信息都附加到药水本身，因此无需四处寻找以确保将其从适当的背包中取出：该实体不再存在，并带走其组件。
+
+使用 cargo run 进行测试会令人惊讶：该药水在使用后并没有被删除！这是因为 ECS 只是将实体标记为 dead - 它不会在系统中删除它们（以免弄乱迭代器和线程）。因此，在每次调用 dispatch(派遣) self.run_systems(); 之后，需要添加对 maintain 的调用。
+```rust
+RunState::PreRun => {
+    self.run_systems(); // dispatch 系统
+    self.ecs.maintain();
+    newrunstate = RunState::AwaitingInput;
+}```
+
+2.8.9 dropping items 从仓库丢弃物品
+遵循 使用物品的模式，**create an intent component**,a meun to select it, and a system to perform the drop
+WantsToDropItem components
+add ItemDropSystem to the inventory_system  
+显示 待丢弃物品的菜单 change the gui.rs, add in ShowDropItems
+extend impl GameState for State, RunState::ShowDropItem => {....}
+
 10 render order 渲染的顺序
 药水显示在玩家的上方
+add render_order filed to Renderable Component
+player's render_order is 0
+monster's render_order is 1
+
+根据 render_order 进行渲染
 ------------------------------------------------------------
 先写出伪代码 ，一步一步做什么，然后将伪代码翻译成 真正的代码
 
-git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull 
+git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull

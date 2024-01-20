@@ -1,6 +1,15 @@
+use crate::{CombatStats, Potion, WantsToDrinkPotion, WantsToDropItem};
+
 use super::{gamelog::GameLog, InBackpack, Name, Position, WantsToPickupItem};
 use specs::prelude::*;
 
+// 物品菜单的状态
+#[derive(PartialEq, Copy, Clone)]
+pub enum ItemMenuResult {
+    Cancel,
+    NoResponse,
+    Selected,
+}
 // 这个系统来处理物品搜集的问题
 pub struct ItemCollectionSystem {}
 
@@ -21,9 +30,9 @@ impl<'a> System<'a> for ItemCollectionSystem {
 
         // 拾取 物品后 查找 有这些组件的实体
         for pickup in wants_pickup.join() {
-            // 移除position 组件
+            // 实体移除position 组件, 该实体 移除 position 组件后, 会从地图上消失, 因为渲染的迭代的存储器 是包含 position 组件存储器的
             positions.remove(pickup.item);
-            // 插入，将其分配给InBackpack 组件
+            // 插入InBackpack 组件
             backpack
                 .insert(
                     pickup.item,
@@ -82,9 +91,9 @@ impl<'a> System<'a> for PotionUseSystem {
                     stats.hp = i32::min(stats.max_hp, stats.hp + potion.heal_amount);
                     // 如果时玩家 喝了药水，打印日志
                     if entity == *player_entity {
-                        gamelog.entities.push(format!(
+                        gamelog.entries.push(format!(
                             "you drink the {}, healing {} hp.",
-                            name.get(drink.potion).unwarp().name,
+                            names.get(drink.potion).unwrap().name,
                             potion.heal_amount
                         ));
                     }
@@ -98,9 +107,10 @@ impl<'a> System<'a> for PotionUseSystem {
     }
 }
 
-pub struct ItemDropSytem {}
+// 丢弃物品系统
+pub struct ItemDropSystem {}
 
-impl<'a> System<'a> for ItemDropSytem {
+impl<'a> System<'a> for ItemDropSystem {
     #[allow(clippy::type_complexity)]
     type SystemData = (
         ReadExpect<'a, Entity>,
@@ -127,7 +137,7 @@ impl<'a> System<'a> for ItemDropSytem {
 
             {
                 // 丢弃物品后，物品显示在哪个位置
-                let dropped_pos = position.get(entity).unwarp();
+                let dropped_pos = positions.get(entity).unwrap();
                 dropper_pos.x = dropped_pos.x;
                 dropper_pos.y = dropped_pos.y;
             }
@@ -144,7 +154,7 @@ impl<'a> System<'a> for ItemDropSytem {
                 .expect("Unable to insert position");
             backpack.remove(to_drop.item);
 
-            if entity == *placed_entity {
+            if entity == *player_entity {
                 gamelog.entries.push(format!(
                     "You drop the {}.",
                     names.get(to_drop.item).unwrap().name

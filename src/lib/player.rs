@@ -65,7 +65,42 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         }
     }
 }
+fn get_item(ecs: &mut World) {
+    // obtains a bunch of references/accessors (访问器 和引用器) from the ECS, and iterates all items with a position
+    let player_pos = ecs.fetch::<Point>();
+    let player_entity = ecs.fetch::<Entity>();
+    let entities = ecs.entities();
+    let items = ecs.read_storage::<Item>();
+    let positions = ecs.read_storage::<Position>();
+    let mut gamelog = ecs.fetch_mut::<GameLog>();
 
+    let mut target_item: Option<Entity> = None;
+    // 如果玩家的位置和物品的位置重合
+    for (item_entity, _item, position) in (&entities, &items, &positions).join() {
+        if position.x == player_pos.x && position.y == player_pos.y {
+            target_item = Some(item_entity);
+        }
+    }
+
+    match target_item {
+        // 打印日志
+        None => gamelog
+            .entries
+            .push("There is nothing here to pick up.".to_string()),
+        Some(item) => {
+            let mut pickup = ecs.write_storage::<WantsToPickupItem>();
+            pickup
+                .insert(
+                    *player_entity,
+                    WantsToPickupItem {
+                        collected_by: *player_entity,
+                        item,
+                    },
+                )
+                .expect("Unable to insert want to pickup");
+        }
+    }
+}
 pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     // Player movement
     if let Some(key) = ctx.key {
@@ -95,11 +130,17 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
 
             VirtualKeyCode::Numpad1 | VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
 
+            // G 键 拾取 物品
+            VirtualKeyCode::G => get_item(&mut gs.ecs),
+            // i 键显示库存
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            // D 显示丢弃菜单
+            VirtualKeyCode::D => return RunState::ShowDropItem,
             _ => {
-                return RunState::Paused;
+                return RunState::AwaitingInput;
             }
         }
     }
 
-    RunState::Running
+    RunState::PreRun
 }

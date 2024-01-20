@@ -1,9 +1,6 @@
 use rltk::RGB;
-use specs::Component;
-use specs::DenseVecStorage;
-use specs::Entity;
-use specs::WriteStorage;
-use specs_derive::Component;
+use specs::prelude::*;
+use specs_derive::*;
 // 创建组件
 #[derive(Component)]
 pub struct Position {
@@ -16,6 +13,7 @@ pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    // 渲染顺序
     pub render_order: i32,
 }
 
@@ -78,4 +76,38 @@ impl SufferDamage {
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }
+}
+
+// item 定义物品的组件
+#[derive(Component, Debug)]
+pub struct Item {}
+
+// potion 药水
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount: i32,
+}
+
+// backpack  是否在背包中
+#[derive(Component, Debug, Clone)]
+pub struct InBackpack {
+    pub owner: Entity,
+}
+// ---------------------------- intent component ------------------------------------
+// 收集物品 玩家 怪物都可以收集物品
+#[derive(Component, Debug, Clone)]
+pub struct WantsToPickupItem {
+    pub collected_by: Entity,
+    pub item: Entity,
+}
+
+//intent 意图组件
+#[derive(Component, Debug)]
+pub struct WantsToDrinkPotion {
+    pub potion: Entity,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct WantsToDropItem {
+    pub item: Entity,
 }

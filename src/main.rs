@@ -8,7 +8,7 @@ fn main() -> rltk::BError {
     use rltk::RltkBuilder;
 
     // initialise context
-    let context = RltkBuilder::simple80x50()
+    let mut context = RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
         .build()?;
 
@@ -18,7 +18,7 @@ fn main() -> rltk::BError {
     // create world,because entity will add in world,so world is mutable
     let mut gs = State {
         ecs: World::new(),
-        runstate: RunState::Running,
+        runstate: RunState::PreRun,
     };
 
     // -------------register component--------------------------------
@@ -44,13 +44,21 @@ fn main() -> rltk::BError {
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
 
+    // 物品组件,药水组件
     gs.ecs.register::<Item>();
     gs.ecs.register::<Potion>();
     gs.ecs.register::<InBackpack>();
+    // 意图组件
+    gs.ecs.register::<WantsToPickupItem>();
+    gs.ecs.register::<WantsToDrinkPotion>();
+    gs.ecs.register::<WantsToDropItem>();
 
     // ------------------create entity 创建实体 ----------------------------------------------------
+    let map = Map::new_map_rooms_and_corridors();
 
     // 使用 spawner 创建玩家 怪物 物品
+    // 玩家的位置在第一个房间的中心位置
+    let (player_x, player_y) = map.rooms[0].center();
     let player_entity = spawner::player(&mut gs.ecs, player_x, player_y);
 
     // ----------------------房间 怪物 物品 生成器代码------------------------
@@ -61,13 +69,10 @@ fn main() -> rltk::BError {
 
     // --------------add resource in world  ,shared data the whole ecs can use --------------------------------
     // 将map 插到world 中
-    let map = Map::new_map_rooms_and_corridors();
     gs.ecs.insert(map);
 
+    // 随机数 生成器 作为一种 资源
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
-
-    // 玩家的位置在第一个房间的中心位置
-    let (player_x, player_y) = map.rooms[0].center();
 
     // 将玩家的位置作为 资源 插入 ecs 中 Point 是表示玩家位置的资源
     gs.ecs.insert(Point::new(player_x, player_y));
