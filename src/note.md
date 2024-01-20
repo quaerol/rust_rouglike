@@ -68,18 +68,41 @@ gs.ecs.insert(player_entity);
 --------------------------------------------------------------------
 ### 2.7 User interface
 1,收缩 Map, Shrinking the map,使用常量来设置map 的size
-2, 改变 map 的高度，留下一部分作为user interface
-3,创建 gui.rs ， 在地图下方画一个box 作为UI
-4,添加生命条，从ecs 中获得player 的生命值，然后渲染
-5,添加消息日志，日志作为一种资源，可以被任何系统访问，
-首先对日志进行建模，新建文件gamelog.rs，struct GameLog
+改变 map 的高度 43 ，留下一部分作为user interface
+
+2,some minimal GUI elements 
+创建 gui.rs ， draw_ui 在地图下方画一个box 作为UI
+
+3,adding a health bar, 添加生命条，
+RLTK provides a convenient helper 从ecs 中获得player 的生命值，然后渲染
+
+4,adding a message log 
+添加消息日志，日志作为一种资源，可以被任何系统访问，所有信息都可以告诉你信息
+
+新建文件gamelog.rs，首先对日志进行建模，，struct GameLog
 当作资源插入到 ecs 中
-攻击日志，死亡日志
+
+5,logging attacks
+攻击日志，
+change melee_combat_system -> run method
+
+6 notifying of deaths 通知死亡信息死亡日志
+修改 damage_system -> delete_the_dead method
 
 6,鼠标支持和工具提示，mouse support,tooltips
 鼠标点击地图上的 玩家或者怪物显示 提示
 
-7,optional post-processing for that truly retro feeling
+RLTK获取鼠标信息,将鼠标 指向的单元格的背景设置为洋红色
+
+new method gui.rs -> draw_tooltip 
+获取 tooltips 所需的组件 names and positions also gets read access to the map itself
+检查 鼠标 是否在地图上, 如果不是 退出
+
+if we have any tooltips, look at the mouse position, 如果鼠标的位置在右侧, put the 
+tooltips to the right, otherwise to the left
+
+7,optional post-processing 处理 for that truly retro feeling 显示一种复古的感觉
+main context.with_post_scanlines
 
 ------------------------------------------------------------
 ### 2.8 items and inventory 物品和库存

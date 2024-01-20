@@ -26,10 +26,23 @@ pub mod map_indexing_system;
 pub use map_indexing_system::*;
 
 mod melee_combat_system;
-use melee_combat_system::MeleeCombatSystem;
+use melee_combat_system::*;
 
 mod damage_system;
-use damage_system::DamageSystem;
+use damage_system::*;
+
+pub mod gui;
+pub use gui::*;
+
+pub mod gamelog;
+pub use gamelog::*;
+
+pub mod inventory_system;
+pub use inventory_system::*;
+
+pub mod spawner;
+pub use spawner::*;
+
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -130,5 +143,8 @@ impl GameState for State {
                 ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
             }
         }
+
+        // 绘制UI
+        gui::draw_ui(&self.ecs, ctx);
     }
 }

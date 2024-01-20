@@ -12,6 +12,9 @@ fn main() -> rltk::BError {
         .with_title("Roguelike Tutorial")
         .build()?;
 
+    // 地图显示复古的感觉
+    context.with_post_scanlines(true);
+
     // create world,because entity will add in world,so world is mutable
     let mut gs = State {
         ecs: World::new(),
@@ -72,6 +75,10 @@ fn main() -> rltk::BError {
     // 将玩家实体转为资源，这样可以全局使用
     gs.ecs.insert(player_entity);
 
+    // 插入日志 作为资源
+    gs.ecs.insert(gamelog::GameLog {
+        entries: vec!["Welcome to Rusty Roguelike".to_string()],
+    });
     // ------------------------game mian loop------------------------
     rltk::main_loop(context, gs)
 }
