@@ -63,6 +63,9 @@ fn main() -> rltk::BError {
 
     // ----------------------房间 怪物 物品 生成器代码------------------------
     // 在创建房间后同时创建怪物 和 物品，两者的位置有房间确定
+    // 随机数 生成器 作为一种 资源 随机创建
+    gs.ecs.insert(rltk::RandomNumberGenerator::new());
+
     for room in map.rooms.iter().skip(1) {
         spawner::spawn_room(&mut gs.ecs, room);
     }
@@ -71,14 +74,14 @@ fn main() -> rltk::BError {
     // 将map 插到world 中
     gs.ecs.insert(map);
 
-    // 随机数 生成器 作为一种 资源
-    gs.ecs.insert(rltk::RandomNumberGenerator::new());
-
     // 将玩家的位置作为 资源 插入 ecs 中 Point 是表示玩家位置的资源
     gs.ecs.insert(Point::new(player_x, player_y));
 
     // 将玩家实体转为资源，这样可以全局使用
     gs.ecs.insert(player_entity);
+
+    // 将运行状态作为资源插入进世界中
+    gs.ecs.insert(RunState::PreRun);
 
     // 插入日志 作为资源
     gs.ecs.insert(gamelog::GameLog {

@@ -34,16 +34,75 @@ impl Map {
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
         (y as usize * self.height as usize) + x as usize
     }
-    // documentation tags comment
+
+    // romm is a rect, map 中的rooms 存储的是应用到map 中的rooms
+    fn apply_room_to_map(&mut self, room: &Rect) {
+        for y in room.y1 + 1..room.y2 {
+            for x in room.x1 + 1..room.x2 {
+                let idx = self.xy_idx(x, y);
+                self.tiles[idx] = TileType::Floor;
+            }
+        }
+    }
+
+    // 水平的通道
+    fn apply_horizontal_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
+        for x in min(x1, x2)..=max(x1, x2) {
+            let idx = self.xy_idx(x, y);
+            if idx > 0 && idx < self.width as usize * self.height as usize {
+                // 在地图的范围内
+                self.tiles[idx as usize] = TileType::Floor;
+            }
+        }
+    }
+    // 垂直的通道
+    fn apply_vertical_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
+        for y in min(y1, y2)..=max(y1, y2) {
+            let idx = self.xy_idx(x, y);
+            if idx > 0 && idx < self.width as usize * self.height as usize {
+                // 在地图的范围内
+                self.tiles[idx as usize] = TileType::Floor;
+            }
+        }
+    }
+
+    // 退出的有效,是否 是 房间的出口
+    fn is_exit_valid(&self, x: i32, y: i32) -> bool {
+        // 边界检查
+        if x < 1 || x > self.width - 1 || y < 1 || y > self.height - 1 {
+            return false;
+        }
+        let idx = self.xy_idx(x, y);
+        // 不被阻挡的才可以exit
+        !self.blocked[idx]
+    }
+
+    // 填充(populate)被阻挡的tile  wall was blocked
+    pub fn populate_blocked(&mut self) {
+        for (i, tile) in self.tiles.iter_mut().enumerate() {
+            self.blocked[i] = *tile == TileType::Wall;
+        }
+    }
+
+    // 清楚tile content 的 索引
+    // 程序开辟内存是很慢的
+    pub fn clear_content_index(&mut self) {
+        for content in self.tile_content.iter_mut() {
+            content.clear();
+        }
+    }
+
     /// Makes a map with solid boundaries and 400 randomly placed walls. No guarantees that it won't look awful.
+    /// Makes a new map using the algorithm from http://rogueliketutorials.com/tutorials/tcod/part-3/
+    /// This gives a handful of random rooms and corridors joining them together.
 
     pub fn new_map_rooms_and_corridors() -> Self {
         // now map is full for wall
         let mut map = Map {
             tiles: vec![TileType::Wall; MAPCOUNT],
             rooms: Vec::new(),
-            width: 80,
-            height: 50,
+            width: MAPWIDTH as i32,
+            height: MAPHEIGHT as i32,
             revealed_tiles: vec![false; MAPCOUNT], // 最开始玩家没有看到任何一个tile
             visible_tiles: vec![false; MAPCOUNT],
             blocked: vec![false; MAPCOUNT],
@@ -56,15 +115,12 @@ impl Map {
 
         let mut rng = RandomNumberGenerator::new();
 
-        for _ in 0..MAX_ROOMS {
+        for _i in 0..MAX_ROOMS {
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
-
             let x = rng.roll_dice(1, map.width - w - 1) - 1;
             let y = rng.roll_dice(1, map.height - h - 1) - 1;
-
             let new_room = Rect::new(x, y, w, h);
-
             let mut ok = true;
 
             for other_room in map.rooms.iter() {
@@ -84,79 +140,18 @@ impl Map {
                     if rng.range(0, 2) == 1 {
                         // 走廊的宽度不同
                         map.apply_horizontal_tunnel(prev_x, new_x, prev_y);
-                        map.apply_vertical_tunnel(prev_x, new_y, prev_x);
-                    } else {
-                        map.apply_horizontal_tunnel(prev_x, new_x, new_y);
                         map.apply_vertical_tunnel(prev_y, new_y, new_x);
+                    } else {
+                        map.apply_vertical_tunnel(prev_y, new_y, prev_x);
+                        map.apply_horizontal_tunnel(prev_x, new_x, new_y);
                     }
                 }
 
                 map.rooms.push(new_room);
             }
         }
-
-        map // 返回所有的房间及地图，出参和入参之间没有联系，有，考虑生命周期
-    }
-    // 水平的通道
-    fn apply_horizontal_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
-        for x in min(x1, x2)..=max(x1, x2) {
-            let idx = self.xy_idx(x, y);
-            if idx > 0 && idx <= MAPCOUNT {
-                // 在地图的范围内
-                self.tiles[idx as usize] = TileType::Floor;
-            }
-        }
-    }
-    // 垂直的通道
-    fn apply_vertical_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
-        for y in min(y1, y2)..=max(y1, y2) {
-            let idx = self.xy_idx(x, y);
-            if idx > 0 && idx <= MAPCOUNT {
-                // 在地图的范围内
-                self.tiles[idx as usize] = TileType::Floor;
-            }
-        }
-    }
-
-    // romm is a rect, map 中的rooms 存储的是应用到map 中的rooms
-    fn apply_room_to_map(&mut self, room: &Rect) {
-        for y in room.y1 + 1..room.y2 {
-            for x in room.x1 + 1..room.x2 {
-                let idx = self.xy_idx(x, y);
-                self.tiles[idx] = TileType::Floor;
-            }
-        }
-    }
-    // 是否退出的有效
-    fn is_exit_valid(&self, x: i32, y: i32) -> bool {
-        // 边界检查
-        if x < 1 || x > self.width || y < 1 || y > self.height - 1 {
-            return false;
-        }
-        let idx = self.xy_idx(x, y);
-        // 不被阻挡的才可以exit
-        !self.blocked[idx]
-    }
-    // 填充(populate)被阻挡的tile  wall was blocked
-    pub fn populate_blocked(&mut self) {
-        for (i, tile) in self.tiles.iter().enumerate() {
-            self.blocked[i] = *tile == TileType::Wall;
-        }
-    }
-
-    // 清楚tile content 的 索引
-    // 程序开辟内存是很慢的
-    pub fn clear_content_index(&mut self) {
-        for content in self.tile_content.iter_mut() {
-            content.clear();
-        }
-    }
-}
-
-// RLTK 并不关心 我们的地图如何实现，只要你实现了他提供的trait ,RLTK 实现了对对应的trait 的逻辑
-impl Algorithm2D for Map {
-    fn dimensions(&self) -> Point {
-        Point::new(self.width, self.height)
+        // 返回所有的房间及地图，出参和入参之间没有联系，有，考虑生命周期
+        map
     }
 }
 
@@ -167,7 +162,15 @@ impl BaseMap for Map {
         self.tiles[idx as usize] == TileType::Wall
     }
 
-    // 获得有效的离开的tile
+    // 根据 tilt 索引 得到 这两个tile 之间的距离
+    fn get_pathing_distance(&self, idx1: usize, idx2: usize) -> f32 {
+        let w = self.width as usize;
+        let p1 = Point::new(idx1 % w, idx1 / w);
+        let p2 = Point::new(idx2 % w, idx2 / w);
+        rltk::DistanceAlg::Pythagoras.distance2d(p1, p2)
+    }
+
+    // 获得可以的退出的tile
     fn get_available_exits(&self, idx: usize) -> rltk::SmallVec<[(usize, f32); 10]> {
         // 将存在的tile 放进一个 vector
         let mut exits = rltk::SmallVec::new();
@@ -177,7 +180,7 @@ impl BaseMap for Map {
 
         // Cardinal directions 四个方向 移动
         if self.is_exit_valid(x - 1, y) {
-            exits.push((idx - 1, 1.0)) //
+            exits.push((idx - 1, 1.0))
         };
         if self.is_exit_valid(x + 1, y) {
             exits.push((idx + 1, 1.0))
@@ -188,6 +191,7 @@ impl BaseMap for Map {
         if self.is_exit_valid(x, y + 1) {
             exits.push((idx + w, 1.0))
         };
+
         // Diagonals 对角线方向移动
         if self.is_exit_valid(x - 1, y - 1) {
             exits.push(((idx - w) - 1, 1.45));
@@ -203,14 +207,15 @@ impl BaseMap for Map {
         }
         exits
     }
-    // 根据 tilt 索引 得到 这两个tile 之间的距离
-    fn get_pathing_distance(&self, idx1: usize, idx2: usize) -> f32 {
-        let w = self.width as usize;
-        let p1 = Point::new(idx1 % w, idx1 / w);
-        let p2 = Point::new(idx2 % w, idx2 / w);
-        rltk::DistanceAlg::Pythagoras.distance2d(p1, p2)
+}
+
+// RLTK 并不关心 我们的地图如何实现，只要你实现了他提供的trait ,RLTK 实现了对对应的trait 的逻辑
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width, self.height)
     }
 }
+
 // retrieve the the map and the player's viewshed ,it only draw tiles present in the viewshed
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
     // write_storage 从ecs 中拿到注册的组件，设置为可写的存储
@@ -242,7 +247,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
 
             // Move the coordinates ，转到下一行
             x += 1;
-            if x > 79 {
+            if x > MAPWIDTH as i32 - 1 {
                 x = 0;
                 y += 1;
             }

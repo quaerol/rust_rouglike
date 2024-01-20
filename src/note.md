@@ -5,7 +5,7 @@ https://bfnightly.bracketproductions.com/chapter_9.html
 Specs 的 教程链接
 https://specs.amethyst.rs/docs/tutorials/01_intro
 
-### 2.6 Dealing Damage
+## 2.6 Dealing Damage
 1, monster chase player
 monster 的行动路径，哪些房间是可以走过的
 RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
@@ -73,7 +73,7 @@ gs.ecs.insert(player_entity);
 
 
 --------------------------------------------------------------------
-### 2.7 User interface
+## 2.7 User interface
 1,收缩 Map, Shrinking the map,使用常量来设置map 的size
 改变 map 的高度 43 ，留下一部分作为user interface
 
@@ -112,7 +112,7 @@ tooltips to the right, otherwise to the left
 main context.with_post_scanlines
 
 ------------------------------------------------------------
-### 2.8 items and inventory 物品和库存
+## 2.8 items and inventory 物品和库存
 在UI中添加　基本物品　拾取　使用 丢弃(drop)
 
 2.8.1 thinking about composing items 组合物品
@@ -178,7 +178,8 @@ RunState::PreRun => {
     self.run_systems(); // dispatch 系统
     self.ecs.maintain();
     newrunstate = RunState::AwaitingInput;
-}```
+}
+```
 
 2.8.9 dropping items 从仓库丢弃物品
 遵循 使用物品的模式，**create an intent component**,a meun to select it, and a system to perform the drop
@@ -194,6 +195,10 @@ player's render_order is 0
 monster's render_order is 1
 
 根据 render_order 进行渲染
+
+change render section in tick method 
+
+## 2.9 Ranged Scroll/Targeting
 ------------------------------------------------------------
 先写出伪代码 ，一步一步做什么，然后将伪代码翻译成 真正的代码
 
