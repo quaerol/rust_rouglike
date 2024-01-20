@@ -1,4 +1,4 @@
-### 2.6 Dealing Damage
+****### 2.6 Dealing Damage
 1, monster chase player
 monster 的行动路径，哪些房间是可以走过的 
 RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
@@ -24,24 +24,34 @@ RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
 CombatStats Component hp defense power 
 给玩家添加战斗状态，
 
-7，map 的 tile_content 存储tile 上的内容，
+7，indexing what is where ,知道图块（tile）上的内容map 的 tile_content 存储tile 上的内容，
+map_indexing_sytem 系统，知道tile上有哪些内容
+通过 map tile 索引所有的实体 ，将tile 上的实体添加到tile_content上
 
-让player hit things
-索引所有的实体通过tile ，将tile 上的实体添加到tile_content上
+8，让player hit things
+Bump to attack (walking into the target) is the canonical way to do this. 走到目标的位置
+检查玩家走进的tile 是否包含目标
+you can walk up to a mob and try to move onto it
 
-player attacking and killing things
+
+9，player attacking and killing things
 表示攻击意图的组件，WantsToMelee 
 玩家可能遭受多个攻击源，但是Specs 不想将同一个组件多次添加到实体上
 所以讲咩一个攻击作为一个实体，要么一个变量存储所有的攻击
-选择简单的后一个，SufferDamage component
+选择简单的后一个，SufferDamage component, to track the damage， 并为该组件 实现一个方法 使其易于使用
+
 给玩家添加想要攻击的组件
-MeleeCombatSyate, melee 近战攻击组件
+MeleeCombatSyatem 系统 处理近战, melee 近战 new file melee_combat_system.rs
+
+damage_system 来应用伤害，计算伤害值，new file damage_system.rs
+
 DamageSystem 系统，计算收到的伤害
 delete_the_dead 删掉死亡的实体，在tick commmand 中，每一帧都会检测，在系统运行之后
 
-让monster hit you back 
-怪物添加WantsToMelee
-将玩家实体变为资源，这样我们才可以引用使用
+10 让monster hit you back 
+只需要为怪物添加WantsToMelee 怪物 就可以攻击玩家
+
+将玩家实体变为资源，这样我们才可以比较容易的引用使用
 let player_entity = gs.ecs ... 
 gs.ecs.insert(player_entity);
 
@@ -108,3 +118,5 @@ gui -> show_inventory() gui 显示库存
 药水显示在玩家的上方
 ------------------------------------------------------------
 先写出伪代码 ，一步一步做什么，然后将伪代码翻译成 真正的代码
+
+git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull 

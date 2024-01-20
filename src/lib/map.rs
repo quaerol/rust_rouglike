@@ -5,9 +5,9 @@ use specs::prelude::*;
 use std::cmp::{max, min};
 // -----------------------Map section --------------------
 // 公开的常量 地图的大小
-pub const MAPWIDTH : usize = 80;
-pub const MAPHEIGHT : usize = 43;
-pub const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
+pub const MAPWIDTH: usize = 80;
+pub const MAPHEIGHT: usize = 43;
+pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
 
 // 地图的类型，枚举
 #[derive(PartialEq, Copy, Clone)]
@@ -24,6 +24,8 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>, // 记录玩家看到过的地图
     pub visible_tiles: Vec<bool>,  // 将记住了但是看不到的内容变灰
     pub blocked: Vec<bool>,        // 哪些tile不可以走上去，防止玩家和怪物重叠
+    // 存储地图上tile 的内容
+    pub tile_content: Vec<Vec<Entity>>,
 }
 impl Map {
     // 如何将坐标映射魏地图数组的下标
@@ -44,6 +46,7 @@ impl Map {
             revealed_tiles: vec![false; 80 * 50], // 最开始玩家没有看到任何一个tile
             visible_tiles: vec![false; 80 * 50],
             blocked: vec![false; 80 * 50],
+            tile_content: vec![Vec::new(); 80 * 50],
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -137,6 +140,14 @@ impl Map {
     pub fn populate_blocked(&mut self) {
         for (i, tile) in self.tiles.iter().enumerate() {
             self.blocked[i] = *tile == TileType::Wall;
+        }
+    }
+
+    // 清楚tile content 的 索引
+    // 程序开辟内存是很慢的
+    pub fn clear_content_index(&mut self) {
+        for content in self.tile_content.iter_mut() {
+            content.clear();
         }
     }
 }

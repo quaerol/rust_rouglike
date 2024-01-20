@@ -11,14 +11,47 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
     let mut viewsheds = ecs.write_storage::<Viewshed>();
+    // 获得战斗状态组件的存储器
+    let combat_stats = ecs.read_storage::<CombatStats>();
+    // 攻击意图组件的存储器
+    let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
+
+    // 得到所有的实体
+    let entities = ecs.entities();
 
     // let map = ecs.fetch::<Vec<TileType>>();
     let map = ecs.fetch::<Map>();
 
-    for (_player, pos, viewshed) in (&mut players, &mut positions, &mut viewsheds).join() {
-        let des_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
+    for (entity, _player, pos, viewshed) in
+        (&entities, &mut players, &mut positions, &mut viewsheds).join()
+    {
+        if pos.x + delta_x < 1
+            || pos.x + delta_x > map.width - 1
+            || pos.y + delta_y < 1
+            || pos.y + delta_y > map.height - 1
+        {
+            return;
+        }
+        // 目标位置 索引
+        let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
+        // 潜在的目标
+        for potential_target in map.tile_content[destination_idx].iter() {
+            let target = combat_stats.get(*potential_target);
+            if let Some(_target) = target {
+                // 给 entity 插入 WantsToMelee 组件
+                wants_to_melee
+                    .insert(
+                        entity,
+                        WantsToMelee {
+                            target: *potential_target,
+                        },
+                    )
+                    .expect("Add target failed");
+                return;
+            }
+        }
         // 现在不会越过Wall 也不会 踩过（walking over） 怪物
-        if !map.blocked[des_idx] {
+        if !map.blocked[destination_idx] {
             pos.x = min(79, max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
 
