@@ -43,8 +43,9 @@ pub struct Name {
 #[derive(Component, Debug)]
 pub struct Item {}
 
+// 药水的实际作用
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct ProvidesHealing {
     // 恢复生命的数量
     pub heal_amount : i32
 }
@@ -55,6 +56,23 @@ pub struct InBackpack {
     pub owner : Entity
 }
 
+
+// 构成物品 的 基本组件
+// 可以被消耗的物品
+#[derive(Component, Debug)]
+pub struct Consumable{}
+
+// 组件，描述范围攻击
+#[derive(Component, Debug)]
+pub struct Ranged {
+    pub range : i32
+}
+
+// 打击损伤，造成的损伤
+#[derive(Component, Debug)]
+pub struct InflictsDamage {
+    pub damage : i32
+}
 // -----------------------------意图组件-------------------------------
 // 想要被拾取的物品，物品是什么，被哪个拾取
 #[derive(Component, Debug, Clone)]

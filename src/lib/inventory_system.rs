@@ -35,36 +35,51 @@ impl<'a> System<'a> for ItemCollectionSystem{
     }
 }
 
-// 药水使用系统 组件，想要饮用药水
-pub struct PotionUseSystem{}
-impl<'a> System<'a> for PotionUseSystem{
+// 物品使用 系统 药水使用系统 组件，想要饮用药水
+pub struct ItemUseSystem{}
+impl<'a> System<'a> for ItemUseSystem{
     #[allow(clippy::type_complexity)]
     type SystemData = ( ReadExpect<'a, Entity>,
                         WriteExpect<'a, GameLog>,
+                        ReadExpect<'a, Map>,
                         Entities<'a>,
                         WriteStorage<'a, WantsToDrinkPotion>,
                         ReadStorage<'a, Name>,
-                        ReadStorage<'a, Potion>,
-                        WriteStorage<'a, CombatStats>
+                        ReadStorage<'a, Consumable>,
+                        ReadStorage<'a, ProvidesHealing>,
+                        ReadStorage<'a, InflictsDamage>,
+                        WriteStorage<'a, CombatStats>,
+                        WriteStorage<'a, SufferDamage>,
+                        ReadStorage<'a, AreaOfEffect>,
+                        WriteStorage<'a, Confusion>
                       );
     fn run(&mut self,data:Self::SystemData){
-        let (player_entity, mut gamelog, entities, mut wants_drink, names, potions, mut combat_stats) = data;
+        let (player_entity, mut gamelog, map, entities, mut wants_use, names,
+            consumables, healing, inflict_damage, mut combat_stats, mut suffer_damage,
+            aoe, mut confused) = data;
 
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
-        for (entity, drink, stats) in (&entities, &wants_drink, &mut combat_stats).join() {
+        for (entity, useitem) in (&entities, &wants_use).join() {
             // the potion 想要被喝
-            let potion = potions.get(drink.potion);
-            match potion {
+            let item_heals = healing.get(useitem.item);
+            match item_heals {
                 None => {},
-                Some(potion) =>{
+                Some(healer) =>{
                     // heals up the drinker 喝了药水的生命值 最大时生命值的最大值 
-                    stats.hp = i32::min(stats.max_hp,stats.hp +  potion.heal_amount);
+                    stats.hp = i32::min(stats.max_hp,stats.hp +  healer.heal_amount);
                     // 如果时玩家 喝了药水，打印日志
                     if entity == *player_entity{
-                        gamelog.entities.push(format!("you drink the {}, healing {} hp.",name.get(drink.potion).unwarp().name,potion.heal_amount));
+                        gamelog.entities.push(format!("you drink the {}, healing {} hp.",names.get(useitem.item).unwarp().name,healer.heal_amount));
                     }
                     // 删除 the potion 将该实体标记为 dead 但是不会在系统中删除他们，
-                    entities.delete(drink.potion).expect("Delete failed");
+                    // 检查是否有 消耗组件
+                    let consumable = consumables.get(useitem.item);
+                    match consumable {
+                        None => {}
+                        Some(_) => {
+                            entities.delete(useitem.item).expect("Delete failed");
+                        }
+                    }
                 }
             }
         }

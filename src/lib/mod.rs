@@ -31,6 +31,8 @@ pub enum RunState {
     ShowInventory,
     // 显示可以丢弃物品的菜单
     ShowDropItem,
+    // 显示攻击目标
+    ShowTargeting { range : i32, item : Entity}
 }
 
 pub struct State {
@@ -115,11 +117,20 @@ impl GameState for State {
                     // 得到选中的物体
                     let item_entity = result.1.unwarp();
                     // 为选中的物体 添加 WantsToDrinkPotion 组件，标记可以被饮用
-                    let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
-                    let names = self.ecs.read_storage::<Name>();
-                    let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                    gamelog.entries.push(format!("You try to use {}", names.get(item_entity).unwrap().name));
-                    newrunstate = RunState::AwaitingInput; 
+                    let is_ranged= self.ecs.read_storage::<Ranged>();
+                    let is_item_ranged = is_ranged.get(item_entity);
+
+                    if let Some(is_item_ranged) = is_item_ranged {
+                        newrunstate = RunState::ShowTargeting{ range: is_item_ranged.range, item: item_entity };
+            
+                    }else{
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        let names = self.ecs.read_storage::<Name>();
+                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                        gamelog.entries.push(format!("You try to use {}", names.get(item_entity).unwrap().name));
+                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToUseItem{ item: item_entity, target: None }).expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
                 }
             }
         }
@@ -143,5 +154,7 @@ impl GameState for State {
                 }
             }
         }
+
+        // 
     }
 }
