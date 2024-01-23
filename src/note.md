@@ -1,4 +1,5 @@
 
+<<<<<<< HEAD
 https://bfnightly.bracketproductions.com/chapter_10.html
 
 1 将rust 代码 编译魏WASM  被游览器运行，将js 文件（是不是rust 被编译为js 文件），将rust在窗口中显示的内容显示到浏览器中，bindgen 
@@ -75,8 +76,17 @@ You could let monsters think every time anything moves (and you probably will wh
 
 
 ### 2.6 Dealing Damage
+=======
+教程链接
+https://bfnightly.bracketproductions.com/chapter_9.html
+
+Specs 的 教程链接
+https://specs.amethyst.rs/docs/tutorials/01_intro
+
+## 2.6 Dealing Damage
+>>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 1, monster chase player
-monster 的行动路径，哪些房间是可以走过的 
+monster 的行动路径，哪些房间是可以走过的
 RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
 
 2，怪物不会走在各自身上，也不会走在玩家的身上，而且不会被阻塞在某一个地方
@@ -100,24 +110,34 @@ RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
 CombatStats Component hp defense power 
 给玩家添加战斗状态，
 
-7，map 的 tile_content 存储tile 上的内容，
+7，indexing what is where ,知道图块（tile）上的内容map 的 tile_content 存储tile 上的内容，
+map_indexing_sytem 系统，知道tile上有哪些内容
+通过 map tile 索引所有的实体 ，将tile 上的实体添加到tile_content上
 
-让player hit things
-索引所有的实体通过tile ，将tile 上的实体添加到tile_content上
+8，让player hit things
+Bump to attack (walking into the target) is the canonical way to do this. 走到目标的位置
+检查玩家走进的tile 是否包含目标
+you can walk up to a mob and try to move onto it
 
-player attacking and killing things
+
+9，player attacking and killing things
 表示攻击意图的组件，WantsToMelee 
 玩家可能遭受多个攻击源，但是Specs 不想将同一个组件多次添加到实体上
 所以讲咩一个攻击作为一个实体，要么一个变量存储所有的攻击
-选择简单的后一个，SufferDamage component
+选择简单的后一个，SufferDamage component, to track the damage， 并为该组件 实现一个方法 使其易于使用
+
 给玩家添加想要攻击的组件
-MeleeCombatSyate, melee 近战攻击组件
+MeleeCombatSyatem 系统 处理近战, melee 近战 new file melee_combat_system.rs
+
+damage_system 来应用伤害，计算伤害值，new file damage_system.rs
+
 DamageSystem 系统，计算收到的伤害
 delete_the_dead 删掉死亡的实体，在tick commmand 中，每一帧都会检测，在系统运行之后
 
-让monster hit you back 
-怪物添加WantsToMelee
-将玩家实体变为资源，这样我们才可以引用使用
+10 让monster hit you back 
+只需要为怪物添加WantsToMelee 怪物 就可以攻击玩家
+
+将玩家实体变为资源，这样我们才可以比较容易的引用使用
 let player_entity = gs.ecs ... 
 gs.ecs.insert(player_entity);
 
@@ -132,25 +152,49 @@ gs.ecs.insert(player_entity);
 
 
 --------------------------------------------------------------------
-### 2.7 User interface
+## 2.7 User interface
 1,收缩 Map, Shrinking the map,使用常量来设置map 的size
-2, 改变 map 的高度，留下一部分作为user interface
-3,创建 gui.rs ， 在地图下方画一个box 作为UI
-4,添加生命条，从ecs 中获得player 的生命值，然后渲染
-5,添加消息日志，日志作为一种资源，可以被任何系统访问，
-首先对日志进行建模，新建文件gamelog.rs，struct GameLog
+改变 map 的高度 43 ，留下一部分作为user interface
+
+2,some minimal GUI elements 
+创建 gui.rs ， draw_ui 在地图下方画一个box 作为UI
+
+3,adding a health bar, 添加生命条，
+RLTK provides a convenient helper 从ecs 中获得player 的生命值，然后渲染
+
+4,adding a message log 
+添加消息日志，日志作为一种资源，可以被任何系统访问，所有信息都可以告诉你信息
+
+新建文件gamelog.rs，首先对日志进行建模，，struct GameLog
 当作资源插入到 ecs 中
-攻击日志，死亡日志
+
+5,logging attacks
+攻击日志，
+change melee_combat_system -> run method
+
+6 notifying of deaths 通知死亡信息死亡日志
+修改 damage_system -> delete_the_dead method
 
 6,鼠标支持和工具提示，mouse support,tooltips
 鼠标点击地图上的 玩家或者怪物显示 提示
 
-7,optional post-processing for that truly retro feeling
+RLTK获取鼠标信息,将鼠标 指向的单元格的背景设置为洋红色
+
+new method gui.rs -> draw_tooltip 
+获取 tooltips 所需的组件 names and positions also gets read access to the map itself
+检查 鼠标 是否在地图上, 如果不是 退出
+
+if we have any tooltips, look at the mouse position, 如果鼠标的位置在右侧, put the 
+tooltips to the right, otherwise to the left
+
+7,optional post-processing 处理 for that truly retro feeling 显示一种复古的感觉
+main context.with_post_scanlines
 
 ------------------------------------------------------------
-### 2.8 items and inventory 物品和库存
+## 2.8 items and inventory 物品和库存
 在UI中添加　基本物品　拾取　使用 丢弃(drop)
 
+<<<<<<< HEAD
 2.8.1 composing items 组合物品
 面向对象 和 实体组件系统的区别是 你不是考虑实体的继承，而是什么
 组件组合成了这个实体
@@ -176,10 +220,47 @@ make the RNG random number generator a resource, 作为一种资源，我们随�
 
 2.8.6 picking up items, 拾取物品， create component InBackpack, represent an item being in someone's backpack
 玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent WantToPickupItem 来标记，
+=======
+2.8.1 thinking about composing items 组合物品
+面向对象 和 实体组件系统的**区别是** 你不是考虑实体的继承，而是什么组件组合成了这个实体
+
+so what makes up an item? 
+thinking about it, an item can be said to have the following **properties** 
+Renderable, draw it 
+Position 
+InPack, indicate this item is stored 
+Item, which implies that it can be picked up 
+if it can be used, the item need some way to indicate that it can be used
+
+2.8.2 consistently random 始终随机
+计算机本质上是确定性的 - 因此（无需涉及密码学的东西）当您要求“随机”数字时，您实际上得到的是“非常难以预测序列中的下一个数字”。该序列由种子控制 - 使用相同的种子，您总是会得到相同的骰子
+make the RNG random number generator a resource, 作为一种资源，任何系统随时随地访问它
+main  ecs.insert(....)
+
+2.8.3 improved spawning 
+优化怪物生成，支持生成物品
+整理玩家 和 怪物生成代码， 将原来main.rs 中的 玩家和怪物生成代码都放入 spawner.rs
+
+
+2.8.4 spawn all the things, spawn multiple monster per room,
+怪物 物品 在房间内随机生成
+
+2.8.5 health potion(药剂) entities,  
+添加组件来帮助定义药水
+add Item and Potion components to components.rs,register these in main.rs
+add new function spawner ->health_potion
+在房间中随机生成随机数量的potion
+
+2.8.6 picking up items, 拾取物品， 
+create component **InBackpack**, represent an item being in someone's backpack
+玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent **WantToPickupItem** 来标记，
+>>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 需要一个系统来处理 WantToPickupItem notices, 所以一个新的文件 inventory_system.rs inventory-库存
-添加一个按键 g 拾取物品,get_item()
+添加一个按键 g 拾取物品,add new function palyer.rs ->get_item()
+按下G键位如果玩家的位置和物品的位置重合,拾取物品,物品移除 position 组件, 添加 WantsToPickupItem 组件
 
 2.8.7 listing your inventory 列出库存，
+<<<<<<< HEAD
 游戏循环的另一种状态，列出库存的时候，游戏循环进入另一种，其他系统停止运行
 gui -> show_inventory() gui 显示库存
 
@@ -192,10 +273,59 @@ gui -> show_inventory() gui 显示库存
 2.8.10 render order 渲染的顺序
 药水显示在玩家的上方
 
+=======
+列出库存的时候，游戏循环进入另一个状态，
+extends main.rs -> RunMode
+gui.rs -> show_inventory() gui 显示库存
+I 键, 显示库存 inventory.
+main.rs -> tick(), we'll add another matchin 添加匹配 ShowInventory
+添加 show_inventory() in gui.rs
+
+2.8.8 using items 使用物品
+在库存中选中一个item  并使用 
+extend the menu to return an item and a result
+gui.rs -> show_inventory() gui 物品菜单栏的 按键操作 Escape
+RunState::ShowInventory 打印选中物品的名字
+
+玩家和 怪物 都可以使用物品 如 药水
+add 意图组件 WantsToDrinkPotion
+
+add PotionUseSystem in inventory_system.rs,this iterates all of the WantsToDrinkPotion intent objects, 然后回复 drinke 一定的生命值 Potion 
+由于所有放置信息都附加到药水本身，因此无需四处寻找以确保将其从适当的背包中取出：该实体不再存在，并带走其组件。
+
+使用 cargo run 进行测试会令人惊讶：该药水在使用后并没有被删除！这是因为 ECS 只是将实体标记为 dead - 它不会在系统中删除它们（以免弄乱迭代器和线程）。因此，在每次调用 dispatch(派遣) self.run_systems(); 之后，需要添加对 maintain 的调用。
+```rust
+RunState::PreRun => {
+    self.run_systems(); // dispatch 系统
+    self.ecs.maintain();
+    newrunstate = RunState::AwaitingInput;
+}
+```
+
+2.8.9 dropping items 从仓库丢弃物品
+遵循 使用物品的模式，**create an intent component**,a meun to select it, and a system to perform the drop
+WantsToDropItem components
+add ItemDropSystem to the inventory_system  
+显示 待丢弃物品的菜单 change the gui.rs, add in ShowDropItems
+extend impl GameState for State, RunState::ShowDropItem => {....}
+
+10 render order 渲染的顺序
+药水显示在玩家的上方
+add render_order filed to Renderable Component
+player's render_order is 0
+monster's render_order is 1
+
+根据 render_order 进行渲染
+
+change render section in tick method 
+
+## 2.9 Ranged Scroll/Targeting
+>>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 ------------------------------------------------------------
 
 先写出伪代码 ，一步一步做什么，然后将伪代码翻译成 真正的代码
 
+<<<<<<< HEAD
 *每个项目都有对应的自己的文档*
 
 ### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
@@ -211,3 +341,6 @@ add more components and registeres in mian.rs
 生成物品的生成代码
 3，implementing ranged damage for items 对物品实施远程伤害
 want magic missile to be 可以瞄准，选中一个 受害者，然后激活发射，这是另一种的输入模式，添加运行状态 RunState
+=======
+git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
+>>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
