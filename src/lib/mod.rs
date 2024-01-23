@@ -135,32 +135,6 @@ impl GameState for State {
                 }
             }
 
-<<<<<<< HEAD
-        // 根据游戏循环不同的状态， 执行不同的操作
-        // 显示库存
-        RunState::ShowInventory => {
-            // 得到 使用的物品
-            let result = gui::show_inventory(self,ctx);
-            match result.0 {
-                gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
-                gui::ItemMenuResult::NoResponse => {}
-                gui::ItemMenuResult::Selected => {
-                    // 得到选中的物体
-                    let item_entity = result.1.unwarp();
-                    // 为选中的物体 添加 WantsToDrinkPotion 组件，标记可以被饮用
-                    let is_ranged= self.ecs.read_storage::<Ranged>();
-                    let is_item_ranged = is_ranged.get(item_entity);
-
-                    if let Some(is_item_ranged) = is_item_ranged {
-                        newrunstate = RunState::ShowTargeting{ range: is_item_ranged.range, item: item_entity };
-            
-                    }else{
-                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
-                        let names = self.ecs.read_storage::<Name>();
-                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
-                        gamelog.entries.push(format!("You try to use {}", names.get(item_entity).unwrap().name));
-                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToUseItem{ item: item_entity, target: None }).expect("Unable to insert intent");
-=======
             // 绘制UI
             gui::draw_ui(&self.ecs, ctx);
         }
@@ -245,10 +219,14 @@ impl GameState for State {
                             )
                             .expect("Unable to insert intent");
                         // 改变 游戏 运行状态
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
                         newrunstate = RunState::PlayerTurn;
                     }
                 }
+            }
+
+            // 在 显示攻击选择菜单
+            RunState::ShowTargeting =>{
+                
             }
         }
 
@@ -258,11 +236,7 @@ impl GameState for State {
             *runwriter = newrunstate;
         }
 
-<<<<<<< HEAD
-        // 
-=======
         // 删除死亡实体
         damage_system::delete_the_dead(&mut self.ecs);
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
     }
 }

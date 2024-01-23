@@ -82,27 +82,18 @@ impl SufferDamage {
 #[derive(Component, Debug)]
 pub struct Item {}
 
-<<<<<<< HEAD
 // 药水的实际作用
 #[derive(Component, Debug)]
 pub struct ProvidesHealing {
     // 恢复生命的数量
     pub heal_amount : i32
-=======
-// potion 药水
-#[derive(Component, Debug)]
-pub struct Potion {
-    pub heal_amount: i32,
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
-}
+
 
 // backpack  是否在背包中
 #[derive(Component, Debug, Clone)]
 pub struct InBackpack {
     pub owner: Entity,
 }
-<<<<<<< HEAD
-
 
 // 构成物品 的 基本组件
 // 可以被消耗的物品
@@ -122,10 +113,6 @@ pub struct InflictsDamage {
 }
 // -----------------------------意图组件-------------------------------
 // 想要被拾取的物品，物品是什么，被哪个拾取
-=======
-// ---------------------------- intent component ------------------------------------
-// 收集物品 玩家 怪物都可以收集物品
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 #[derive(Component, Debug, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,

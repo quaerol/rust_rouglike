@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 https://bfnightly.bracketproductions.com/chapter_10.html
 
 1 将rust 代码 编译魏WASM  被游览器运行，将js 文件（是不是rust 被编译为js 文件），将rust在窗口中显示的内容显示到浏览器中，bindgen 
@@ -76,7 +75,6 @@ You could let monsters think every time anything moves (and you probably will wh
 
 
 ### 2.6 Dealing Damage
-=======
 教程链接
 https://bfnightly.bracketproductions.com/chapter_9.html
 
@@ -84,7 +82,6 @@ Specs 的 教程链接
 https://specs.amethyst.rs/docs/tutorials/01_intro
 
 ## 2.6 Dealing Damage
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 1, monster chase player
 monster 的行动路径，哪些房间是可以走过的
 RLTK 提供了 BaseMap trait  需要我们的 Map 实现 BaseMap
@@ -194,33 +191,6 @@ main context.with_post_scanlines
 ## 2.8 items and inventory 物品和库存
 在UI中添加　基本物品　拾取　使用 丢弃(drop)
 
-<<<<<<< HEAD
-2.8.1 composing items 组合物品
-面向对象 和 实体组件系统的区别是 你不是考虑实体的继承，而是什么
-组件组合成了这个实体
-so what makes up an item? thinking about it, an item can be
-said to have the following properties
-Renderable, draw it 
-Position 
-InPack, indicate this item is stored
-Item, which implies that it can be picked up
-item need some way to indicate that it can be used
-
-2.8.2 consistently random 始终随机
-计算机本质上是确定性的 - 因此（无需涉及密码学的东西）当您要求“随机”数字时，您实际上得到的是“非常难以预测序列中的下一个数字”。该序列由种子控制 - 使用相同的种子，您总是会得到相同的骰子
-make the RNG random number generator a resource, 作为一种资源，我们随时随地访问它
-
-2.8.3 improved spawning 优化怪物生成，支持生成物品
-整理玩家 和 怪物生成代码， 将他们都放入 spawner.rs
-
-2.8.4 spawn all the things, spawn multiple monster per room,
-
-2.8.5 health potion(药剂) entities,  add Item and Potion components to components.rs,register these in main.rs
-在房间中随机生成随机数量的potion
-
-2.8.6 picking up items, 拾取物品， create component InBackpack, represent an item being in someone's backpack
-玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent WantToPickupItem 来标记，
-=======
 2.8.1 thinking about composing items 组合物品
 面向对象 和 实体组件系统的**区别是** 你不是考虑实体的继承，而是什么组件组合成了这个实体
 
@@ -254,26 +224,11 @@ add new function spawner ->health_potion
 2.8.6 picking up items, 拾取物品， 
 create component **InBackpack**, represent an item being in someone's backpack
 玩家和怪物都可以失去物品，他们有一个拾取物品的列表，所以一个 componnent **WantToPickupItem** 来标记，
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 需要一个系统来处理 WantToPickupItem notices, 所以一个新的文件 inventory_system.rs inventory-库存
 添加一个按键 g 拾取物品,add new function palyer.rs ->get_item()
 按下G键位如果玩家的位置和物品的位置重合,拾取物品,物品移除 position 组件, 添加 WantsToPickupItem 组件
 
 2.8.7 listing your inventory 列出库存，
-<<<<<<< HEAD
-游戏循环的另一种状态，列出库存的时候，游戏循环进入另一种，其他系统停止运行
-gui -> show_inventory() gui 显示库存
-
-2.8.8 using items 使用物品
-在库存中选中一个item  并使用 
-
-2.8.9 dropping items 丢弃物品
-遵循 使用物品的模式，create an intent component,a meun to select it, and a system to perform the drop
-
-2.8.10 render order 渲染的顺序
-药水显示在玩家的上方
-
-=======
 列出库存的时候，游戏循环进入另一个状态，
 extends main.rs -> RunMode
 gui.rs -> show_inventory() gui 显示库存
@@ -319,28 +274,42 @@ monster's render_order is 1
 
 change render section in tick method 
 
-## 2.9 Ranged Scroll/Targeting
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
-------------------------------------------------------------
-
-先写出伪代码 ，一步一步做什么，然后将伪代码翻译成 真正的代码
-
-<<<<<<< HEAD
 *每个项目都有对应的自己的文档*
 
 ### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
-last chapter, we added items and inventory - and a single type, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
+
+last chapter, we added items and inventory - and a single item, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
 
 1，using components to describe what an item does 使用组件来描述项目的功能，组合组件
 
 fot flexibility, we will start by breaking down items into a few more components types 
-start with the simple flag component, Consumable component 可消耗的
+
+start with the simple flag component, Consumable component 可消耗的组件
+
+PotionUseSystem -> ItemUseSystem
+
+将Potion 组件 修改为 ProvidsHealing Component, 
+
+change the spawner.rs -> health_potion()
 
 2，describing ranged magic missile（导弹） scrolls, 描述远程魔法导弹卷轴
-add more components and registeres in mian.rs
-生成物品的生成代码
+add more components and registeres in mian.rs, Ranged 范围 InfilctDamage 给予（使遭受）损坏
+
+write magic_missile_sroll function in spawner.rs, describing the scroll 
+
+add magic_missile_sroll function into the spawn list, spawner.rs -> random_item()
+
+将生成物品的生成代码 health_potion 修改为 random_item
+
+now, you'll find scrolls as well as potions lying around, the components system already provides quite a bit of functionality, 
+
+you can see them rendered on the map(thanks to the **renderable** and **positon**)
+you can pick them up and drop them(thanks to **item**)
+you can list them in your **inventory**
+you can call **use** on them, and they are destroyed: but nothing happens
+
 3，implementing ranged damage for items 对物品实施远程伤害
-want magic missile to be 可以瞄准，选中一个 受害者，然后激活发射，这是另一种的输入模式，添加运行状态 RunState
-=======
+want magic missile to be 可以瞄准，激活发射，然后选中一个 受害者，这是另一种的输入模式，添加运行状态 extend main.rs RunState add ShowTargeting 
+extend main.rs -> match newrunstate -> ShowTargeting handle items that are ranged (存在ranged 组件的item ) and include mode switch (模式转换) to ShowTargeting gui绘制攻击选择菜单 gui::ranged_target
+
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752

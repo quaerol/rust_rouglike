@@ -57,19 +57,11 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
         random_monster(ecs, x as i32, y as i32);
     }
 
-<<<<<<< HEAD
     // actually spawn the random item 物品生成代码
     for idx in item_spawn_points.iter(){
         let x = *idx % MAPWIDTH;
         let y = *idx / MAPWIDTH;
         random_item(ecs,x as i32,y as i32);
-=======
-    // actually spawn the potions
-    for idx in item_spawn_points.iter() {
-        let x = *idx % MAPWIDTH;
-        let y = *idx / MAPWIDTH;
-        health_potion(ecs, x as i32, y as i32);
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
     }
 }
 // -----------------------------player-----------------------------------
@@ -159,16 +151,11 @@ fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharTy
 }
 // ----------------------------item------------------------------------
 
-<<<<<<< HEAD
 // spawn health_potion, 
 // 在地图中创建 恢复药剂实体，需要世界和创建的位置
 // 组件表明 它是一个item consumed on use, provide 8 points of healing
 // 组件可以混合，随着组件的添加，物品系统变得更加灵活
 fn health_potion(ecs:&mut World,x:i32,y:i32){
-=======
-// spawn health_potion, 在地图中创建 恢复药剂实体，需要世界和创建的位置
-fn health_potion(ecs: &mut World, x: i32, y: i32) {
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
     ecs.create_entity()
         .with(Position { x, y })
         .with(Renderable {
@@ -177,27 +164,18 @@ fn health_potion(ecs: &mut World, x: i32, y: i32) {
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
-<<<<<<< HEAD
         .with(Name{ name : "Health Potion".to_string() })
         .with(Item{})
         .with(Consumable{})
         .with(ProvidesHealing{ heal_amount: 8 }) // 恢复生命值的数量 组件
         .build(); 
-=======
-        .with(Name {
-            name: "Health Potion".to_string(),
-        })
-        .with(Item {})
-        .with(Potion { heal_amount: 8 }) // 恢复生命值的数量 组件
-        .build();
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 }
 
-// 创建 魔法导弹卷轴 位置信息
+// 创建 魔法导弹卷轴 位置信息 which effectively describes the scroll 
 // 组件描述，item consumable ranged inflictsdamage
 // that's what i like about components: after a while, it sounds more like you are describing a blueprint for
 // device than writing many lines of code
-// 如果的你的工作可以被AI取代，那么说明你还不够厉害
+// 如果的你的工作可以被AI取代，那么说明你还不够厉害 missile 导弹
 fn magic_missile_scroll(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
         .with(Position{ x, y })

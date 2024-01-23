@@ -56,7 +56,6 @@ impl<'a> System<'a> for ItemCollectionSystem {
     }
 }
 
-<<<<<<< HEAD
 // 物品使用 系统 药水使用系统 组件，想要饮用药水
 pub struct ItemUseSystem{}
 impl<'a> System<'a> for ItemUseSystem{
@@ -79,36 +78,10 @@ impl<'a> System<'a> for ItemUseSystem{
         let (player_entity, mut gamelog, map, entities, mut wants_use, names,
             consumables, healing, inflict_damage, mut combat_stats, mut suffer_damage,
             aoe, mut confused) = data;
-=======
-// 药水使用系统 组件，想要饮用药水
-pub struct PotionUseSystem {}
-impl<'a> System<'a> for PotionUseSystem {
-    #[allow(clippy::type_complexity)]
-    type SystemData = (
-        ReadExpect<'a, Entity>,
-        WriteExpect<'a, GameLog>,
-        Entities<'a>,
-        WriteStorage<'a, WantsToDrinkPotion>,
-        ReadStorage<'a, Name>,
-        ReadStorage<'a, Potion>,
-        WriteStorage<'a, CombatStats>,
-    );
-    fn run(&mut self, data: Self::SystemData) {
-        let (
-            player_entity,
-            mut gamelog,
-            entities,
-            mut wants_drink,
-            names,
-            potions,
-            mut combat_stats,
-        ) = data;
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
 
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
             // the potion 想要被喝
-<<<<<<< HEAD
             let item_heals = healing.get(useitem.item);
             match item_heals {
                 None => {},
@@ -118,21 +91,6 @@ impl<'a> System<'a> for PotionUseSystem {
                     // 如果时玩家 喝了药水，打印日志
                     if entity == *player_entity{
                         gamelog.entities.push(format!("you drink the {}, healing {} hp.",names.get(useitem.item).unwarp().name,healer.heal_amount));
-=======
-            let potion = potions.get(drink.potion);
-            match potion {
-                None => {}
-                Some(potion) => {
-                    // heals up the drinker 喝了药水的生命值 最大时生命值的最大值
-                    stats.hp = i32::min(stats.max_hp, stats.hp + potion.heal_amount);
-                    // 如果时玩家 喝了药水，打印日志
-                    if entity == *player_entity {
-                        gamelog.entries.push(format!(
-                            "you drink the {}, healing {} hp.",
-                            names.get(drink.potion).unwrap().name,
-                            potion.heal_amount
-                        ));
->>>>>>> 9e4331d0c4be8600a52fbda944a5d70201688752
                     }
                     // 删除 the potion 将该实体标记为 dead 但是不会在系统中删除他们，
                     // 检查是否有 消耗组件
