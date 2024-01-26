@@ -276,7 +276,7 @@ change render section in tick method
 
 *每个项目都有对应的自己的文档*
 
-### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
+## 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
 
 last chapter, we added items and inventory - and a single item, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
 
@@ -344,6 +344,26 @@ extend ItemUseSystem, add the ability to paas along confusion to the ItemUseSyst
 存储 被confusion 的 目标的vector ，let mut add_confusion = Vec::new();
 
 update the **monster_ai_system** to use Confusion status, Confused entity can not act,    if i_anm_confused.turns < 1 只有 Confused 中的 turns 被消耗为0，哪里在消耗这个turns, 怪物每次行动都会检查遍历 confused 存储器，如果存储器中有这个实体，就会  i_am_confused.turns -= 1;
+
+
+## 2.10 Saving ang Loading 保存和加载
+停止游戏然后继续游戏
+1 A Main Menu 主菜单
+resume a game
+a main menu give option to abandon your last save, view credits（制作组)
+
+being in the menu is a state, so extend RunState, include menu state inside it, MainMenu { menu_selection : gui::MainMenuSelection }, handle the new RunState,
+
+in gui.rs, add couple of enum types to handle main menu selections, pub enum MainMenuSelection , pub enum MainMenuResult
+
+handle the new RunState MainMenu, ensure that we are not also rendering the GUI and map when in the menu, rearrange（重新安排） GameState -> tick()
+
+
+
+
+
+
+
 
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
 

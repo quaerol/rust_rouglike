@@ -59,7 +59,15 @@ pub enum RunState {
     ShowInventory,
     ShowDropItem,
     // 显示攻击目标
-    ShowTargeting { range: i32, item: Entity },
+    ShowTargeting {
+        range: i32,
+        item: Entity,
+    },
+    // 处于菜单，存储当前的选项, gui 绘制菜单
+    MainMenu {
+        menu_selection: gui::MainMenuSelection,
+    },
+    SaveGame,
 }
 
 pub struct State {
@@ -106,38 +114,6 @@ impl State {
 impl GameState for State {
     // 每一帧运行
     fn tick(&mut self, ctx: &mut Rltk) {
-        // 清楚屏幕 clearn
-        ctx.cls();
-
-        // --------------------render ---------------------------------------------------
-        // 从world 中得到地图数据
-        // let map = self.ecs.fetch::<Map>();
-        draw_map(&self.ecs, ctx);
-        {
-            // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-
-            // 拿到地图
-            let map = self.ecs.fetch::<Map>();
-
-            // draw entities 根据渲染顺序 绘制 player monster item 等 实体
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            // 根据 render_order 进行 排序
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                // 怪物占用的 tile 是否可见，
-                if map.visible_tiles[idx] {
-                    // 渲染绘制 entity
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-                }
-            }
-
-            // 绘制UI
-            gui::draw_ui(&self.ecs, ctx);
-        }
         // ---------------------- game state ---------------------------------------------------
         // 基于回合制的滴答循环
         // 在运行状态下运行系统
@@ -146,6 +122,45 @@ impl GameState for State {
             let runstate = self.ecs.fetch::<RunState>();
             newrunstate = *runstate;
         }
+
+        // 清楚屏幕 clearn
+        ctx.cls();
+
+        match newrunstate {
+            RunState::MainMenu { .. } => {}
+            _ => {
+                // --------------------render ---------------------------------------------------
+                // 从world 中得到地图数据
+                // let map = self.ecs.fetch::<Map>();
+                draw_map(&self.ecs, ctx);
+                {
+                    // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+
+                    // 拿到地图
+                    let map = self.ecs.fetch::<Map>();
+
+                    // draw entities 根据渲染顺序 绘制 player monster item 等 实体
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    // 根据 render_order 进行 排序
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        // 怪物占用的 tile 是否可见，
+                        if map.visible_tiles[idx] {
+                            // 渲染绘制 entity
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                        }
+                    }
+
+                    // 绘制UI
+                    gui::draw_ui(&self.ecs, ctx);
+                }
+            }
+        }
+
         match newrunstate {
             RunState::PreRun => {
                 // run system dispatch system
@@ -259,6 +274,12 @@ impl GameState for State {
                         newrunstate = RunState::PlayerTurn;
                     }
                 }
+            }
+            RunState::MainMenu { .. } => {
+                todo!()
+            }
+            RunState::SaveGame => {
+                todo!()
             }
         }
 
