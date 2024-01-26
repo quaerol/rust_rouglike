@@ -18,6 +18,8 @@ impl<'a> System<'a> for MonsterAI {
         ReadStorage<'a, Monster>,
         WriteStorage<'a, Position>, // 获得有这组件的实体
         WriteStorage<'a, WantsToMelee>,
+        // 需要修改，所以是Write
+        WriteStorage<'a, Confusion>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -31,6 +33,7 @@ impl<'a> System<'a> for MonsterAI {
             monster,
             mut position,
             mut wants_to_melee,
+            mut confused,
         ) = data;
         // monsterAI system 只有在 Mons特人Trun怪物游戏状态才可以运行
 
@@ -41,7 +44,19 @@ impl<'a> System<'a> for MonsterAI {
         for (entity, mut viewshed, _monster, mut pos) in
             (&entities, &mut viewshed, &monster, &mut position).join()
         {
-            {
+            // 怪物 能否 行动 的标志
+            let mut can_act = true;
+            // 得到 confused 的怪物
+            let is_confused = confused.get_mut(entity);
+            if let Some(i_anm_confused) = is_confused {
+                i_anm_confused.turns -= 1;
+                if i_anm_confused.turns < 1 {
+                    confused.remove(entity);
+                }
+                can_act = true;
+            }
+
+            if can_act {
                 // 怪物和玩家的距离，怪物靠近玩家 开始 大喊大叫 并且攻击
                 let distance =
                     rltk::DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y), *player_pos);

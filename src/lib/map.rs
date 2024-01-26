@@ -254,3 +254,5 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
         }
     }
 }
+
+

@@ -59,7 +59,7 @@ pub enum RunState {
     ShowInventory,
     ShowDropItem,
     // 显示攻击目标
-    ShowTargeting { range : i32, item : Entity}
+    ShowTargeting { range: i32, item: Entity },
 }
 
 pub struct State {
@@ -93,7 +93,7 @@ impl State {
         pickup.run_now(&self.ecs);
 
         // 物品使用系统
-        let mut potions = PotionUseSystem {};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
 
         // 物品 丢弃系统
@@ -177,23 +177,36 @@ impl GameState for State {
                     gui::ItemMenuResult::Selected => {
                         // 日志打印选中的物品 name
                         let item_entity = result.1.unwrap();
+                        // 得到 Ranged 的组件存储器
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        // 得到选中物体中的数据
+                        let is_item_ranged = is_ranged.get(item_entity);
                         let names = self.ecs.read_storage::<Name>();
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!(
                             "You try to use {}, but it isn't written yet",
                             names.get(item_entity).unwrap().name
                         ));
-                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
-                        // create a WantsToDrinkPotion intent:
-                        intent
-                            .insert(
-                                *self.ecs.fetch::<Entity>(),
-                                WantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
-                            )
-                            .expect("Unable to insert intent");
-                        newrunstate = RunState::AwaitingInput;
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            // 改变状态，并给初始化 ShowTargeting 状态
+                            newrunstate = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                            // create a WantsToDrinkPotion intent:
+                            intent
+                                .insert(
+                                    *self.ecs.fetch::<Entity>(),
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            newrunstate = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -225,8 +238,27 @@ impl GameState for State {
             }
 
             // 在 显示攻击选择菜单
-            RunState::ShowTargeting =>{
-                
+            RunState::ShowTargeting { range, item } => {
+                let result = gui::ranged_target(self, ctx, range);
+                // 根据选项菜单的结果进行匹配
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        // 将攻击目标放入 WantsToUseItem 意图组件存储器中
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                *self.ecs.fetch::<Entity>(),
+                                WantsToUseItem {
+                                    item,
+                                    target: result.1,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
             }
         }
 
