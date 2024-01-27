@@ -312,4 +312,6 @@ you can call **use** on them, and they are destroyed: but nothing happens
 want magic missile to be 可以瞄准，激活发射，然后选中一个 受害者，这是另一种的输入模式，添加运行状态 extend main.rs RunState add ShowTargeting 
 extend main.rs -> match newrunstate -> ShowTargeting handle items that are ranged (存在ranged 组件的item ) and include mode switch (模式转换) to ShowTargeting gui绘制攻击选择菜单 gui::ranged_target
 
+
+
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
