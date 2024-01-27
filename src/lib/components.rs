@@ -86,9 +86,8 @@ pub struct Item {}
 #[derive(Component, Debug)]
 pub struct ProvidesHealing {
     // 恢复生命的数量
-    pub heal_amount : i32
-
-
+    pub heal_amount: i32,
+}
 // backpack  是否在背包中
 #[derive(Component, Debug, Clone)]
 pub struct InBackpack {
@@ -98,18 +97,32 @@ pub struct InBackpack {
 // 构成物品 的 基本组件
 // 可以被消耗的物品
 #[derive(Component, Debug)]
-pub struct Consumable{}
+pub struct Consumable {}
 
 // 组件，描述范围攻击
 #[derive(Component, Debug)]
 pub struct Ranged {
-    pub range : i32
+    pub range: i32,
 }
 
 // 打击损伤，造成的损伤
 #[derive(Component, Debug)]
 pub struct InflictsDamage {
-    pub damage : i32
+    pub damage: i32,
+}
+
+// AoE
+#[derive(Component, Debug)]
+pub struct AreaOfEffect {
+    // 攻击半径
+    pub radius: i32,
+}
+
+// 昏迷
+#[derive(Component, Debug)]
+pub struct Confusion {
+    // 昏迷的第几个回合
+    pub turns: i32,
 }
 // -----------------------------意图组件-------------------------------
 // 想要被拾取的物品，物品是什么，被哪个拾取
@@ -120,11 +133,14 @@ pub struct WantsToPickupItem {
 }
 
 //intent 意图组件
-#[derive(Component, Debug)]
-pub struct WantsToDrinkPotion {
-    pub potion: Entity,
+
+#[derive(Component, Debug, Clone)]
+pub struct WantsToUseItem {
+    pub item: Entity,
+    pub target: Option<rltk::Point>,
 }
 
+// user is the owning entity, the item is the item field, and it is aimed at target - if there is one
 #[derive(Component, Debug, Clone)]
 pub struct WantsToDropItem {
     pub item: Entity,

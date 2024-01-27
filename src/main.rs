@@ -43,14 +43,16 @@ fn main() -> rltk::BError {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
+    gs.ecs.register::<Confusion>();
 
-    // 物品组件,药水组件
+    // 物品组件
     gs.ecs.register::<Item>();
-    gs.ecs.register::<Potion>();
+
     gs.ecs.register::<InBackpack>();
+
     // 意图组件
     gs.ecs.register::<WantsToPickupItem>();
-    gs.ecs.register::<WantsToDrinkPotion>();
+    gs.ecs.register::<WantsToUseItem>();
     gs.ecs.register::<WantsToDropItem>();
 
     // ------------------create entity 创建实体 ----------------------------------------------------

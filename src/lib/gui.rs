@@ -1,4 +1,4 @@
-use crate::{GameLog, InBackpack, Map, Name, Position, State};
+use crate::{GameLog, InBackpack, Map, Name, Position, State, Viewshed};
 
 use super::{CombatStats, Player};
 use rltk::{Console, Point, Rltk, VirtualKeyCode, RGB};
@@ -15,6 +15,17 @@ pub enum ItemMenuResult {
     Selected,
 }
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum MainMenuSelection {
+    NewGame,
+    LoadGame,
+    Quit,
+}
+#[derive(PartialEq, Copy, Clone)]
+pub enum MainMenuResult {
+    NoSelection { selected: MainMenuSelection },
+    Selected { selected: MainMenuSelection },
+}
 // 绘制UI
 pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
     ctx.draw_box(
@@ -375,28 +386,38 @@ pub fn drop_item_menu(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
 
 // 绘制攻击菜单
 // 返回 菜单 的 状态，和 选项 所在位置
-pub fn ranged_target(gs : &mut State, ctx : &mut Rltk, range : i32) -> (ItemMenuResult, Option<Point>) {
-    // start by obtaining the player's location and viewshed, and it 
+pub fn ranged_target(
+    gs: &mut State,
+    ctx: &mut Rltk,
+    range: i32,
+) -> (ItemMenuResult, Option<Point>) {
+    // start by obtaining the player's location and viewshed, and it
     let player_entity = gs.ecs.fetch::<Entity>();
     let player_pos = gs.ecs.fetch::<Point>();
     let viewsheds = gs.ecs.read_storage::<Viewshed>();
 
     // 选中 选项 所在的颜色
-    ctx.print_color(5, 0, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Select Target:");
+    ctx.print_color(
+        5,
+        0,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Select Target:",
+    );
 
     // Highlight available target cells
     let mut available_cells = Vec::new();
-    lte visible = viewsheds.get(*player_entity);
-    if let Some(visible) = visible{
-        // we have a viewshed 视域范围内的物体
-        for idx in visible.visible_tiles.iter(){
-            let distance = rltk::DistanceAlg::Pythagoras.distance2d(*player_entity,*idx);
-            if distance <= range as f32{
-                ctx.set_bg(idx.x,idx.yRGB::named(rltk::BLUE));
+    let visible = viewsheds.get(*player_entity);
+    if let Some(visible) = visible {
+        // we have a viewshed 遍历视域范围内的物体,将视域中cell 设置为蓝色
+        for idx in visible.visible_tiles.iter() {
+            let distance = rltk::DistanceAlg::Pythagoras.distance2d(*player_pos, *idx);
+            if distance <= range as f32 {
+                ctx.set_bg(idx.x, idx.y, RGB::named(rltk::BLUE));
                 available_cells.push(idx);
             }
         }
-    }else{
+    } else {
         return (ItemMenuResult::Cancel, None);
     }
 
@@ -405,14 +426,21 @@ pub fn ranged_target(gs : &mut State, ctx : &mut Rltk, range : i32) -> (ItemMenu
 
     let mut valid_target = false;
     // 如果 鼠标指向有效目标，高亮为青色
-    for idx in available_cells.iter() { if idx.x == mouse_pos.0 && idx.y == mouse_pos.1 { valid_target = true; } }
+    for idx in available_cells.iter() {
+        if idx.x == mouse_pos.0 && idx.y == mouse_pos.1 {
+            valid_target = true;
+        }
+    }
 
     // 对于有效的目标，设置背景
     if valid_target {
         ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(rltk::CYAN));
         if ctx.left_click {
-            // 返回鼠标的位置
-            return (ItemMenuResult::Selected, Some(Point::new(mouse_pos.0, mouse_pos.1)));
+            // If you click a valid cell, it returns targeting information for where you are aiming - otherwise, it cancels
+            return (
+                ItemMenuResult::Selected,
+                Some(Point::new(mouse_pos.0, mouse_pos.1)),
+            );
         }
     } else {
         ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(rltk::RED));

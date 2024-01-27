@@ -1,4 +1,4 @@
-use crate::{CombatStats, Potion, WantsToDrinkPotion, WantsToDropItem};
+use crate::*;
 
 use super::{gamelog::GameLog, InBackpack, Name, Position, WantsToPickupItem};
 use specs::prelude::*;
@@ -57,55 +57,169 @@ impl<'a> System<'a> for ItemCollectionSystem {
 }
 
 // 物品使用 系统 药水使用系统 组件，想要饮用药水
-pub struct ItemUseSystem{}
-impl<'a> System<'a> for ItemUseSystem{
+pub struct ItemUseSystem {}
+impl<'a> System<'a> for ItemUseSystem {
     #[allow(clippy::type_complexity)]
-    type SystemData = ( ReadExpect<'a, Entity>,
-                        WriteExpect<'a, GameLog>,
-                        ReadExpect<'a, Map>,
-                        Entities<'a>,
-                        WriteStorage<'a, WantsToDrinkPotion>,
-                        ReadStorage<'a, Name>,
-                        ReadStorage<'a, Consumable>,
-                        ReadStorage<'a, ProvidesHealing>,
-                        ReadStorage<'a, InflictsDamage>,
-                        WriteStorage<'a, CombatStats>,
-                        WriteStorage<'a, SufferDamage>,
-                        ReadStorage<'a, AreaOfEffect>,
-                        WriteStorage<'a, Confusion>
-                      );
-    fn run(&mut self,data:Self::SystemData){
-        let (player_entity, mut gamelog, map, entities, mut wants_use, names,
-            consumables, healing, inflict_damage, mut combat_stats, mut suffer_damage,
-            aoe, mut confused) = data;
+    type SystemData = (
+        ReadExpect<'a, Entity>,
+        WriteExpect<'a, GameLog>,
+        ReadExpect<'a, Map>,
+        Entities<'a>,
+        WriteStorage<'a, WantsToUseItem>,
+        ReadStorage<'a, Name>,
+        ReadStorage<'a, Consumable>,
+        ReadStorage<'a, ProvidesHealing>,
+        ReadStorage<'a, InflictsDamage>,
+        WriteStorage<'a, CombatStats>,
+        WriteStorage<'a, SufferDamage>,
+        ReadStorage<'a, AreaOfEffect>,
+        WriteStorage<'a, Confusion>,
+    );
+    fn run(&mut self, data: Self::SystemData) {
+        let (
+            player_entity,
+            mut gamelog,
+            map,
+            entities,
+            mut wants_use,
+            names,
+            consumables,
+            healing,
+            inflict_damage,
+            mut combat_stats,
+            mut suffer_damage,
+            aoe,
+            mut confused,
+        ) = data;
 
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
-            // the potion 想要被喝
-            let item_heals = healing.get(useitem.item);
-            match item_heals {
-                None => {},
-                Some(healer) =>{
-                    // heals up the drinker 喝了药水的生命值 最大时生命值的最大值 
-                    stats.hp = i32::min(stats.max_hp,stats.hp +  healer.heal_amount);
-                    // 如果时玩家 喝了药水，打印日志
-                    if entity == *player_entity{
-                        gamelog.entities.push(format!("you drink the {}, healing {} hp.",names.get(useitem.item).unwarp().name,healer.heal_amount));
-                    }
-                    // 删除 the potion 将该实体标记为 dead 但是不会在系统中删除他们，
-                    // 检查是否有 消耗组件
-                    let consumable = consumables.get(useitem.item);
-                    match consumable {
-                        None => {}
-                        Some(_) => {
-                            entities.delete(useitem.item).expect("Delete failed");
+            // 物体是否使用的标志
+            let mut used_item = true;
+
+            // Targeting 存储待攻击 实体
+            let mut targets: Vec<Entity> = Vec::new();
+
+            match useitem.target {
+                None => {
+                    // if　there is no target, apply it to the player
+                    targets.push(*player_entity);
+                }
+                Some(target) => {
+                    // 使用的物品 是否 包含 AOE 组件
+                    let area_effect = aoe.get(useitem.item);
+                    match area_effect {
+                        None => {
+                            // Single target in tile 单体
+                            let idx = map.xy_idx(target.x, target.y);
+                            // 遍历 tile contain
+                            for mob in map.tile_content[idx].iter() {
+                                targets.push(*mob);
+                            }
+                        }
+                        Some(area_effect) => {
+                            // Aoe blast 爆炸 一个 范围
+                            let mut blast_tiles =
+                                rltk::field_of_view(target, area_effect.radius, &*map);
+                            // Retains 保留
+                            blast_tiles.retain(|p| {
+                                p.x > 0 && p.x < map.width - 1 && p.y > 0 && p.y < map.height - 1
+                            });
+                            // 遍历 这个 范围的tile
+                            for tile_idx in blast_tiles.iter() {
+                                let idx = map.xy_idx(tile_idx.x, tile_idx.y);
+                                for mob in map.tile_content[idx].iter() {
+                                    targets.push(*mob);
+                                }
+                            }
                         }
                     }
                 }
             }
+            // if it heals, apply the healing
+            let item_heals = healing.get(useitem.item);
+            match item_heals {
+                None => {}
+
+                Some(healer) => {
+                    used_item = false;
+                    for target in targets.iter() {
+                        // target 是一个实体，存储组件获得这个实体 对应这个组件的属性数据
+                        let stats = combat_stats.get_mut(*target);
+                        if let Some(stats) = stats {
+                            // heals up the drinker 喝了药水的生命值 最大时生命值的最大值
+                            stats.hp = i32::min(stats.max_hp, stats.hp + healer.heal_amount);
+                            // 如果时玩家 喝了药水，打印日志
+                            if entity == *player_entity {
+                                gamelog.entries.push(format!(
+                                    "you drink the {}, healing {} hp.",
+                                    names.get(useitem.item).unwrap().name,
+                                    healer.heal_amount
+                                ));
+                                used_item = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // if it inflicts(给予) 伤害，apply it to the target cell
+            // This checks to see if we have an InflictsDamage component on the item - and if it does, applies the damage to everyone in the targeted cell.
+            let item_damage = inflict_damage.get(useitem.item);
+            match item_damage {
+                None => {}
+                Some(damage) => {
+                    // 是否使用used_item
+                    used_item = false;
+                    // 遍历
+                    for mob in targets.iter() {
+                        SufferDamage::new_damage(&mut suffer_damage, *mob, damage.damage);
+                        if entity == *player_entity {
+                            let mob_name = names.get(*mob).unwrap();
+                            let item_name = names.get(useitem.item).unwrap();
+                            gamelog.entries.push(format!(
+                                "You use {} on {}, inflicting {} hp.",
+                                item_name.name, mob_name.name, damage.damage
+                            ));
+                        }
+
+                        used_item = true;
+                    }
+                }
+            }
+
+            // Can it pass along confusion? Note the use of scopes to escape from the borrow checker!
+            let mut add_confusion = Vec::new();
+            {
+                let causes_confusion = confused.get(useitem.item);
+                match causes_confusion {
+                    None => {}
+                    Some(confusion) => {
+                        used_item = false;
+                        for mob in targets.iter() {
+                            // 加入到 confusion 向量
+                            add_confusion.push((*mob, confusion.turns));
+                            if entity == *player_entity {
+                                let mob_name = names.get(*mob).unwrap();
+                                let item_name = names.get(useitem.item).unwrap();
+                                gamelog.entries.push(format!(
+                                    "You use {} on {}, confusing them.",
+                                    item_name.name, mob_name.name
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+            // 被confusion 的 攻击列表的对象
+            for mob in add_confusion.iter() {
+                confused
+                    .insert(mob.0, Confusion { turns: mob.1 })
+                    .expect("Unable to insert status");
+            }
         }
 
-        wants_drink.clear();
+        wants_use.clear();
     }
 }
 

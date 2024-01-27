@@ -59,7 +59,15 @@ pub enum RunState {
     ShowInventory,
     ShowDropItem,
     // 显示攻击目标
-    ShowTargeting { range : i32, item : Entity}
+    ShowTargeting {
+        range: i32,
+        item: Entity,
+    },
+    // 处于菜单，存储当前的选项, gui 绘制菜单
+    MainMenu {
+        menu_selection: gui::MainMenuSelection,
+    },
+    SaveGame,
 }
 
 pub struct State {
@@ -93,7 +101,7 @@ impl State {
         pickup.run_now(&self.ecs);
 
         // 物品使用系统
-        let mut potions = PotionUseSystem {};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
 
         // 物品 丢弃系统
@@ -106,38 +114,6 @@ impl State {
 impl GameState for State {
     // 每一帧运行
     fn tick(&mut self, ctx: &mut Rltk) {
-        // 清楚屏幕 clearn
-        ctx.cls();
-
-        // --------------------render ---------------------------------------------------
-        // 从world 中得到地图数据
-        // let map = self.ecs.fetch::<Map>();
-        draw_map(&self.ecs, ctx);
-        {
-            // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-
-            // 拿到地图
-            let map = self.ecs.fetch::<Map>();
-
-            // draw entities 根据渲染顺序 绘制 player monster item 等 实体
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            // 根据 render_order 进行 排序
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                // 怪物占用的 tile 是否可见，
-                if map.visible_tiles[idx] {
-                    // 渲染绘制 entity
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-                }
-            }
-
-            // 绘制UI
-            gui::draw_ui(&self.ecs, ctx);
-        }
         // ---------------------- game state ---------------------------------------------------
         // 基于回合制的滴答循环
         // 在运行状态下运行系统
@@ -146,6 +122,45 @@ impl GameState for State {
             let runstate = self.ecs.fetch::<RunState>();
             newrunstate = *runstate;
         }
+
+        // 清楚屏幕 clearn
+        ctx.cls();
+
+        match newrunstate {
+            RunState::MainMenu { .. } => {}
+            _ => {
+                // --------------------render ---------------------------------------------------
+                // 从world 中得到地图数据
+                // let map = self.ecs.fetch::<Map>();
+                draw_map(&self.ecs, ctx);
+                {
+                    // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+
+                    // 拿到地图
+                    let map = self.ecs.fetch::<Map>();
+
+                    // draw entities 根据渲染顺序 绘制 player monster item 等 实体
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    // 根据 render_order 进行 排序
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        // 怪物占用的 tile 是否可见，
+                        if map.visible_tiles[idx] {
+                            // 渲染绘制 entity
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                        }
+                    }
+
+                    // 绘制UI
+                    gui::draw_ui(&self.ecs, ctx);
+                }
+            }
+        }
+
         match newrunstate {
             RunState::PreRun => {
                 // run system dispatch system
@@ -177,23 +192,36 @@ impl GameState for State {
                     gui::ItemMenuResult::Selected => {
                         // 日志打印选中的物品 name
                         let item_entity = result.1.unwrap();
+                        // 得到 Ranged 的组件存储器
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        // 得到选中物体中的数据
+                        let is_item_ranged = is_ranged.get(item_entity);
                         let names = self.ecs.read_storage::<Name>();
                         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
                         gamelog.entries.push(format!(
                             "You try to use {}, but it isn't written yet",
                             names.get(item_entity).unwrap().name
                         ));
-                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
-                        // create a WantsToDrinkPotion intent:
-                        intent
-                            .insert(
-                                *self.ecs.fetch::<Entity>(),
-                                WantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
-                            )
-                            .expect("Unable to insert intent");
-                        newrunstate = RunState::AwaitingInput;
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            // 改变状态，并给初始化 ShowTargeting 状态
+                            newrunstate = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                            // create a WantsToDrinkPotion intent:
+                            intent
+                                .insert(
+                                    *self.ecs.fetch::<Entity>(),
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            newrunstate = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -225,8 +253,33 @@ impl GameState for State {
             }
 
             // 在 显示攻击选择菜单
-            RunState::ShowTargeting =>{
-                
+            RunState::ShowTargeting { range, item } => {
+                let result = gui::ranged_target(self, ctx, range);
+                // 根据选项菜单的结果进行匹配
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        // 将攻击目标放入 WantsToUseItem 意图组件存储器中
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                *self.ecs.fetch::<Entity>(),
+                                WantsToUseItem {
+                                    item,
+                                    target: result.1,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::MainMenu { .. } => {
+                todo!()
+            }
+            RunState::SaveGame => {
+                todo!()
             }
         }
 

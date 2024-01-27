@@ -276,7 +276,7 @@ change render section in tick method
 
 *每个项目都有对应的自己的文档*
 
-### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
+## 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
 
 last chapter, we added items and inventory - and a single item, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
 
@@ -310,8 +310,63 @@ you can call **use** on them, and they are destroyed: but nothing happens
 
 3，implementing ranged damage for items 对物品实施远程伤害
 want magic missile to be 可以瞄准，激活发射，然后选中一个 受害者，这是另一种的输入模式，添加运行状态 extend main.rs RunState add ShowTargeting 
-extend main.rs -> match newrunstate -> ShowTargeting handle items that are ranged (存在ranged 组件的item ) and include mode switch (模式转换) to ShowTargeting gui绘制攻击选择菜单 gui::ranged_target
+extend main.rs -> match newrunstate -> ShowTargeting handle items that are ranged (存在ranged 组件的item ) and include mode switch (模式转换) to ShowTargeting gui绘制攻击选择菜单 gui::ranged_target, 攻击选择菜单, 显示视域, 鼠标选择攻击目标, 返回攻击目标的信息
+
+extend mod.rs RunState::ShowTargeting 匹配
+
+将使用药水的组件修改为WantsToUseItem 组件
+
+将使用potion 系统改为 ItemUseSystem 修改 inventory_system.rs
+
+ItemUseSystem 有使用不同物品的条件，如魔法导弹攻击，药水治疗，AOE攻击等
+
+4 Introducing Area of Effect 引入范围攻击
+add another scroll type Fireball, 引入 Aoe 伤害 
+add a component AreaOfEffect, 存在攻击半径
+
+extend spawner.rs -> random_item 增加一个item 
+
+write a fireball_scroll function to actually spawn them, like other items
+
+现在火球术 会对单体产生伤害，we must fix that，add new vector storage targets
+extend inventory_system.rs ->  match useitem.target {
+
+现在 所有的 物品 的使用目标都是 从对 targets 的迭代进行 获取 for target in targets.iter() {
+
+5 Confusion Srolls 昏迷卷轴
+add another item - confusion scrolls, will target a single item at ranged, make them confused for a few turns - during which time thay will do nothing. 
+start by describing what we want in the item spawning code. extend spawner.rs -> fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
+
+add a new Confusion   component (and register it!):
+
+extend ItemUseSystem, add the ability to paas along confusion to the ItemUseSystem
+
+存储 被confusion 的 目标的vector ，let mut add_confusion = Vec::new();
+
+update the **monster_ai_system** to use Confusion status, Confused entity can not act,    if i_anm_confused.turns < 1 只有 Confused 中的 turns 被消耗为0，哪里在消耗这个turns, 怪物每次行动都会检查遍历 confused 存储器，如果存储器中有这个实体，就会  i_am_confused.turns -= 1;
+
+
+## 2.10 Saving ang Loading 保存和加载
+停止游戏然后继续游戏
+1 A Main Menu 主菜单
+resume a game
+a main menu give option to abandon your last save, view credits（制作组)
+
+being in the menu is a state, so extend RunState, include menu state inside it, MainMenu { menu_selection : gui::MainMenuSelection }, handle the new RunState,
+
+in gui.rs, add couple of enum types to handle main menu selections, pub enum MainMenuSelection , pub enum MainMenuResult
+
+handle the new RunState MainMenu, ensure that we are not also rendering the GUI and map when in the menu, rearrange（重新安排） GameState -> tick()
+
+
+
+
+
+
+
 
 
 
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
+
+
