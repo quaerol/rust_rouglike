@@ -3,6 +3,8 @@ use crate::{rect::*, Player, Viewshed};
 use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
 use specs::prelude::*;
 use std::cmp::{max, min};
+use serde::{Serialize, Deserialize}; 
+
 // -----------------------Map section --------------------
 // 公开的常量 地图的大小
 pub const MAPWIDTH: usize = 80;
@@ -11,12 +13,14 @@ pub const MAPHEIGHT: usize = 43;
 pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
 
 // 地图的类型，枚举
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,  // “#”符号
     Floor, // “.” 符号
 }
 // 创建一个map struct ，存储与map 相关的数据
+// 使用 宏 让Map 进行序列化
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles: Vec<TileType>,
     pub rooms: Vec<Rect>,
@@ -26,6 +30,9 @@ pub struct Map {
     pub visible_tiles: Vec<bool>,  // 将记住了但是看不到的内容变灰
     pub blocked: Vec<bool>,        // 哪些tile不可以走上去，防止玩家和怪物重叠
     // 存储地图上tile 的内容
+    // 跳过 对 tile_conent 的序列化
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub tile_content: Vec<Vec<Entity>>,
 }
 impl Map {

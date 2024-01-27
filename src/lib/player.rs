@@ -136,6 +136,9 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::I => return RunState::ShowInventory,
             // D 显示丢弃菜单
             VirtualKeyCode::D => return RunState::ShowDropItem,
+
+            // Save and Quit
+            VirtualKeyCode::Escape => return RunState::SaveGame,
             _ => {
                 return RunState::AwaitingInput;
             }

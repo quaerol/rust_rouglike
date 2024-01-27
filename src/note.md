@@ -276,7 +276,7 @@ change render section in tick method
 
 *每个项目都有对应的自己的文档*
 
-## 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
+### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
 
 last chapter, we added items and inventory - and a single item, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
 
@@ -357,6 +357,47 @@ being in the menu is a state, so extend RunState, include menu state inside it, 
 in gui.rs, add couple of enum types to handle main menu selections, pub enum MainMenuSelection , pub enum MainMenuResult
 
 handle the new RunState MainMenu, ensure that we are not also rendering the GUI and map when in the menu, rearrange（重新安排） GameState -> tick()
+
+hadle MainMenu state, 处理处于 主菜单 状态 下的逻辑 RunState::MainMenu{ .. } => {}, if something has been selected, change the game state,
+for quit, terminate the process, for now, loading/starting a game do the same thing: go into the PreRun state
+to setup the game
+
+the last thing to do is to write the menu itself, in gui.rs -> main_menu()
+
+match ctx.key{}, displays menu options and lets you select them with up/down keys and enter, it is very careful to not modify state itself.
+
+2 Including Serde（序列化）
+
+Serde is pretty much the gold-standard for serialization in rust, in Cargo.toml inlcude serde and serde_json
+
+cargo run, it will downloading the new dependencies and all of their dependencies.
+
+3 Adding a SaveGame state
+extend RunState add SaveGame
+in tick, add RunState::SaveGame => {} 处理SaveState 状态下的逻辑 
+
+in player.rs, add anthor keyboard handler - escape, press escape to quit the menu
+
+4 Getting started with saving the game 开始保存游戏
+now that the scaffolding is in place, it is  time to actually save something, 
+
+in the tick function, we extend the save system to just dump(转储) a JSON representation of the map to the console, 将地图的json格式 转储在控制台
+
+need to tell Map to serialize itself, 需要让Map 自己进行序列化, 对 struct Map 添加宏，也需要对 TileType 和 Rect 进行序列化
+
+now when you hit escape it will dump a huge blob of JSON data to the console
+
+
+地址，开还是断
+
+5 Saving entity state, 保存实体状态
+but because of Specs handles Entity 的方式，实体的ID 合成的，不能保证下次会得到相同的ID，
+另外，我们可能不想保存所有的内容，所以，引入 specs 中的标记 markes 概念，它提供了一个非常强大的序列化系统
+
+6 Introducing Markers 引入标记
+main.rs to make use marker functionality
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
+
 
 
 

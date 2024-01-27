@@ -4,6 +4,7 @@ use specs::Join;
 use specs::RunNow;
 use specs::World;
 use specs::WorldExt;
+use serde::*;
 
 pub mod rect;
 pub use rect::*;
@@ -67,6 +68,7 @@ pub enum RunState {
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
+    // 保存游戏的状态
     SaveGame,
 }
 
@@ -126,7 +128,9 @@ impl GameState for State {
         // 清楚屏幕 clearn
         ctx.cls();
 
+        // 显示 菜单的时候不会 同时渲染GUI 和 地图
         match newrunstate {
+            // handle the mainmenu state in our large match, 处理 处于菜单的状态
             RunState::MainMenu { .. } => {}
             _ => {
                 // --------------------render ---------------------------------------------------
@@ -276,10 +280,34 @@ impl GameState for State {
                 }
             }
             RunState::MainMenu { .. } => {
-                todo!()
+                // 得到菜单及其选项
+                let result = gui::main_menu(self,ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection{
+                        selected
+                    }=> newrunstate = RunState::MainMenu{
+                        menu_selection: selected
+                    },
+                    gui::MainMenuResult::Selected{
+                        selected
+                    }=> {
+                        match selected {
+                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::Quit => {
+                                ::std::process::exit(0);
+                            }
+                        },
+                    }
+                }
             }
+            // 处理 这个 状态 下的逻辑
             RunState::SaveGame => {
-                todo!()
+                // 从string 转为 json 格式
+                let data = serde_json::to_string(&self.ecs.fetch::<Map>()).unwrap();
+                println!("{}", data);
+                saveload_system::save_game(&mut self.ecs);
+                newrunstate = RunState::MainMenu{ menu_selection : gui::MainMenuSelection::Quit };
             }
         }
 

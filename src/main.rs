@@ -1,6 +1,7 @@
 use rltk::{GameState, Point, Rltk, RGB};
 use specs::prelude::*;
-
+use serde::{Serialize, Deserialize};
+use serde::*;
 pub use map::*;
 use tutorial::*; // use tutorial lib
 fn main() -> rltk::BError {
