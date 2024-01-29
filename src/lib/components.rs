@@ -148,3 +148,9 @@ pub struct WantsToDropItem {
 
 // 标记类型，marker type
 pub struct SerializeMe;
+
+// Special component that exists to help serialize the game data
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct SerializationHelper {
+    pub map : super::map::Map
+}

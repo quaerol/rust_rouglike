@@ -457,6 +457,8 @@ pub enum MainMenuResult {
 
 // 绘制主菜单
 pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
+    // 检查 游戏状态保存文件是否存在
+    let save_exists = super::saveload_system::does_save_exist();
     // 从 State 得到现在所处的运行状态，如果当前的状态是 MainMenu, 显示主菜单
     let runstate = gs.ecs.fetch::<RunState>();
     ctx.print_color_centered(
@@ -487,23 +489,24 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
                 "Begin New Game",
             );
         }
-
-        if selection == MainMenuSelection::LoadGame {
-            ctx.print_color_centered(
-                25,
-                RGB::named(rltk::MAGENTA),
-                RGB::named(rltk::BLACK),
-                "Load Game",
-            );
-        } else {
-            ctx.print_color_centered(
-                25,
-                RGB::named(rltk::WHITE),
-                RGB::named(rltk::BLACK),
-                "Load Game",
-            );
+        // 
+        if save_exists{
+            if selection == MainMenuSelection::LoadGame {
+                ctx.print_color_centered(
+                    25,
+                    RGB::named(rltk::MAGENTA),
+                    RGB::named(rltk::BLACK),
+                    "Load Game",
+                );
+            } else {
+                ctx.print_color_centered(
+                    25,
+                    RGB::named(rltk::WHITE),
+                    RGB::named(rltk::BLACK),
+                    "Load Game",
+                );
+            }
         }
-
         if selection == MainMenuSelection::Quit {
             ctx.print_color_centered(
                 26,

@@ -293,8 +293,10 @@ impl GameState for State {
                     gui::MainMenuResult::Selected { selected } => match selected {
                         gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => {
+                            // 从json  文件中加载地图，反序列化
                             saveload_system::load_game(&mut self.ecs);
                             newrunstate = RunState::AwaitingInput;
+                            // 重新加载后，删除游戏存档文件
                             saveload_system::delete_save();
                         }
                         gui::MainMenuSelection::Quit => {

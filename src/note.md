@@ -434,6 +434,38 @@ move code for loading and saving into savedload_system.rs
 implementing save_game function, extend saveload_system.rs, 
 bulid macro serialize_individually 解决Serde 和Specs 之间 协同工作的问题
 
+creating a new component type - SerializationHelper that stores a copy of the map, then creates a new entity savehepler, and give it the new component SerializationHelper, 
+
+savegame.json file has appeared with your game state in it,
+
+9 Restoring Game State 恢复游戏状态
+it is time load the game state
+
+is there a saved game? 是否有被保存的游戏状态可以被加载，in saveload_system.rs, add funciton does_save_exist()
+
+change 游戏加载的 ui 显示
+
+in main.rs, 编写 游戏加载的逻辑
+
+10 Actually loading the game 实际加载游戏
+in saveload_system.rs, need another macro deserialize_individually,  serialize_individually 宏几乎相同 - 但相反的过程(反序列化)，并包括一些细微的变化：
+extend saveload_system.rs -> load_game function, 将 savegame.json 数据编码 反序列化 ，然后将反序列的结果 转为 specs 组件, 替换 地图 资源，存储玩家和其位置的 世界资源
+
+11 Just add permaddeath 添加永久性的死亡
+roguelike 不会在你重新加载游戏后保存你的游戏存档，add delete_save() function to saveload_system.rs
+
+add a call to mod.rs to delete the save after we load the game
+
+12 Web Assembly 网络组装
+wasm is sandboxed(沙盒)，does not have the ability to save files locally, 没有能力保存文件到本地
+
+rust offers condition 条件编译，就是 C 语言 中 #define
+仅在非 Web 汇编平台上时编译
+#[cfg(not(target_arch = "wasm32"))]
+pub fn save_game(ecs : &mut World) {}
+
+now have a framework for loadin and saving the game whenever we want to, 
+adding components has gained some steps: weh have to register them in main, tag them for Serialize, Deserialize, and add them to our components type lists in saveload_system.rs
 
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
 
