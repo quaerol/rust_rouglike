@@ -467,6 +467,54 @@ pub fn save_game(ecs : &mut World) {}
 now have a framework for loadin and saving the game whenever we want to, 
 adding components has gained some steps: weh have to register them in main, tag them for Serialize, Deserialize, and add them to our components type lists in saveload_system.rs
 
+
+## 2.11 Delving Deeper 
+dungeon crawler 地牢探索者
+this chapter weil introuce depth, with a new dungeon being spawned on each level down, 每个等级 都会生成一个地牢
+we will track the player is depth, and encouraged ever-deeper exploration, 
+what could possibly go wrong for the player?
+
+1 Indicating - and storing - depth 指示和存储深度
+adjust Map struct to include an integer fo depth，给Map添加深度属性
+
+pub fn new_map_rooms_and_corridors(new_depth : i32) -> Map {}, 地图生成器可以创建其他level 的地图，所以为地图生成器函数添加一个参数 new_depth
+
+that is, our maps now konw about depth, you will to delete any savegame.json files you have lying around, since we have changed the format - loading will fail
+
+2 Showing the player their map depth 向玩家显示地图的深度
+we will modify the player is heads-up-display to indicate the current map depth, in gui.rs, inside the draw_ui function
+
+3 Adding down stairs 添加向下一层的楼梯
+modify the enumeration TileType, add new one:down stairs
+
+render the stairs, map.rs contains draw_map, and adding a tile type is a relatively simple task
+
+lastly, place the down stairs(放置向下向上的楼梯), place up stairs in the center of the first room the map generates, place the stairs in the center of the last room, modify new_map_rooms_and_corridors function in map.rs
+
+now, can find a set of down stairs on the map
+
+4 Actually going down a level, 下降一层
+in player.rs, 将下一级的操作绑定到 period 键位上（在美国键盘上，这是不带 Shift 的 > 键）,add new function try_next_level() into player.rs
+
+add new RunState NextLevel, implemented the new RunState, 为新的游戏状态添加对应的逻辑 self.goto_next_level() 函数(State 的一个方法)
+
+add a new impl section for State, so we can attach methods to it, create a new helper method(辅助函数) 
+impl State{
+    fn entities_to_remove_on_level_change(&mut self)->Vec<Entity>{
+
+    }
+}
+when we go to the next level, we want to delete all entities - except the player and whatever equipment(装备) the player has, that is what the helper funciotn does
+
+next step, we go to create the goto_next_level function, also inside the State implementation:
+删除需要删除的实体 -> 创建一个新的地图 -> 获得当前地图资源的可写引用，获取当前的级别，将新地图的当前 level+1，将地图换为新的地图， -> 使用初始设置中使用的相同代码，生成每个房间的怪物和物品-> 将玩家的放到第一个房间的中心 -> 玩家的Viewshed 组件，因为玩家现在周围的地图已经发生了变化，所以 Viewshed 已经过时，marker it as dirty, let the various system take care of the rest -> give the player a log entry that they have descended to the next level-> obtain the player is health component, if their health is ledd than 50% - boost it to half(将其提高一半) -> -> -> -> ->
+
+您可以下降到一个实际上无限的（它实际上受 32 位整数的大小限制）地牢。已经了解 ECS 如何提供帮助，以及我们的序列化工作如何在我们添加到项目时轻松扩展以包含像这样的新功能。
+
+
+
+避免借用和生命周期的问题，创建一个新的是scope，然后在这个scope 中clone, 把这个clong 给 scope 外的一个变量，这个scope结束会自动销毁原始的数据，
+
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
 
 

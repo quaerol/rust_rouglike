@@ -63,6 +63,11 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
 
     // 画出 工具提示的支持
     draw_tooltips(ecs, ctx);
+
+    // 显示 地图的深度 depth
+    let map = ecs.fetch::<Map>();
+    let depth = format!("Depth: {}", map.depth};
+    ctx.print_color(2,43,RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &depth);
 }
 
 // 画出工具提示

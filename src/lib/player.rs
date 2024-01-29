@@ -139,6 +139,14 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
 
             // Save and Quit
             VirtualKeyCode::Escape => return RunState::SaveGame,
+
+            // Level changes
+            VirtualKeyCode::Period => {
+                if try_next_level(&mut gs.ecs) {
+                    // 游戏的状态
+                    return RunState::NextLevel;
+                }
+            }
             _ => {
                 return RunState::AwaitingInput;
             }
@@ -146,4 +154,9 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     }
 
     RunState::PreRun
+}
+
+pub fn try_next_level(ecs:&mut World) -> bool{
+    let player_pos = ecs.fetch::<point>();
+    let map = ecs.fetch::<Map>();
 }

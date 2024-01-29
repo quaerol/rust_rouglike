@@ -17,6 +17,7 @@ pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
 pub enum TileType {
     Wall,  // “#”符号
     Floor, // “.” 符号
+    DownStairs,
 }
 // 创建一个map struct ，存储与map 相关的数据
 // 使用 宏 让Map 进行序列化
@@ -29,6 +30,9 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>, // 记录玩家看到过的地图
     pub visible_tiles: Vec<bool>,  // 将记住了但是看不到的内容变灰
     pub blocked: Vec<bool>,        // 哪些tile不可以走上去，防止玩家和怪物重叠
+    // 深度 i32 is primitive type, and automatically handled by Serde, 
+    // So adding it here automatically adds it to our game save/load mechanism. 
+    pub depth:i32,
     // 存储地图上tile 的内容
     // 跳过 对 tile_conent 的序列化
     #[serde(skip_serializing)]
@@ -102,8 +106,8 @@ impl Map {
     /// Makes a map with solid boundaries and 400 randomly placed walls. No guarantees that it won't look awful.
     /// Makes a new map using the algorithm from http://rogueliketutorials.com/tutorials/tcod/part-3/
     /// This gives a handful of random rooms and corridors joining them together.
-
-    pub fn new_map_rooms_and_corridors() -> Self {
+    // 可以为不同的level 创建地图
+    pub fn new_map_rooms_and_corridors(new_depth:i32) -> Self {
         // now map is full for wall
         let mut map = Map {
             tiles: vec![TileType::Wall; MAPCOUNT],
@@ -114,6 +118,7 @@ impl Map {
             visible_tiles: vec![false; MAPCOUNT],
             blocked: vec![false; MAPCOUNT],
             tile_content: vec![Vec::new(); MAPCOUNT],
+            depth:new_depth
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -122,7 +127,7 @@ impl Map {
 
         let mut rng = RandomNumberGenerator::new();
 
-        for _i in 0..MAX_ROOMS {
+        for i in 0..MAX_ROOMS {
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
             let x = rng.roll_dice(1, map.width - w - 1) - 1;
@@ -157,6 +162,11 @@ impl Map {
                 map.rooms.push(new_room);
             }
         }
+        // 放置楼梯， 一个房间的中心
+        let stairs_position = map.rooms[map.rooms.len() - 1].center();
+        let stairs_idx = map.xy_idx(stairs_position.0, stairs_position.1);
+        map.tiles[stairs_idx] = TileType::DownStairs;
+
         // 返回所有的房间及地图，出参和入参之间没有联系，有，考虑生命周期
         map
     }
@@ -246,6 +256,10 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                     glyph = rltk::to_cp437('#');
                     fg = RGB::from_f32(0.0, 1.0, 0.0);
                 } // 如果tile 被 revealed 但是 玩家不可见 visible， 被设置为白色
+                TileType::DownStairs =>{
+                    glyph = rltk::to_cp437('>');
+                    fg = RGB::from_f32(0., 1.0, 1.0);
+                }
             }
             if !map.visible_tiles[idx] {
                 fg = fg.to_greyscale()

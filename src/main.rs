@@ -62,7 +62,8 @@ fn main() -> rltk::BError {
     // 插入一个实体标记 作为资源
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     // ------------------create entity 创建实体 ----------------------------------------------------
-    let map = Map::new_map_rooms_and_corridors();
+    // 为等级 1 创建地图
+    let map = Map::new_map_rooms_and_corridors(1);
 
     // 使用 spawner 创建玩家 怪物 物品
     // 玩家的位置在第一个房间的中心位置

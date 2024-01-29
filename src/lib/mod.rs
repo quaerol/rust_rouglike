@@ -72,6 +72,7 @@ pub enum RunState {
     },
     // 保存游戏的状态
     SaveGame,
+    NextLevel
 }
 
 pub struct State {
