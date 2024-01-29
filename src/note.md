@@ -518,3 +518,13 @@ next step, we go to create the goto_next_level function, also inside the State i
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
 
 
+## 2.12 Difficulty
+currently, you can advance through multiple dungeon levels, but they all have the same spawns. 没有难度的区别
+
+1 adding a wait key
+roguelike 游戏的一个重要战术元素是跳过回合的能力 - 让怪物向你袭来（并且不会受到第一击！）
+the bility to skip a turn, 跳过回合，
+in player.rs add numeric keypad 5 and space to be skip，implement skip_turn function
+looks up various entities, and then iterates the player is viewshed using the tile_content system, it checks what the player can see for monsters; if no monster is present, it heals the player by 1 hp. 
+
+这为游戏增加了一个很好的战术维度：你可以将敌人引向你，并从战术布局中受益。 Roguelike 游戏的另一个常见功能是等待，如果附近没有敌人，就会提供一些治疗。

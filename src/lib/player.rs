@@ -147,6 +147,10 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
                     return RunState::NextLevel;
                 }
             }
+            
+            // Skip Turn
+            VirtualKeyCode::Numpad5 => return skip_turn(&mut,gs ecs), 
+            VirtualKeyCode::Space => return skip_turn(&mut,gs ecs), 
             _ => {
                 return RunState::AwaitingInput;
             }
@@ -156,6 +160,11 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     RunState::PreRun
 }
 
+// Skip turn
+fn skip_turn(ecs: &mut World) -> RunState{
+    let player_entity = ecs.fetch::<Entity>();
+}
+// 尝试到下一个level 
 pub fn try_next_level(ecs:&mut World) -> bool{
     let player_pos = ecs.fetch::<point>();
     let map = ecs.fetch::<Map>();
