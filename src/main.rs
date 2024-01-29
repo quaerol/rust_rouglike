@@ -1,8 +1,8 @@
-use rltk::{GameState, Point, Rltk, RGB};
-use specs::prelude::*;
-use serde::{Serialize, Deserialize};
-use serde::*;
 pub use map::*;
+use rltk::{GameState, Point, Rltk, RGB};
+use serde::*;
+use serde::{Deserialize, Serialize};
+use specs::prelude::*;
 use tutorial::*; // use tutorial lib
 fn main() -> rltk::BError {
     // use builder
@@ -56,6 +56,11 @@ fn main() -> rltk::BError {
     gs.ecs.register::<WantsToUseItem>();
     gs.ecs.register::<WantsToDropItem>();
 
+    // 标记组件
+    gs.ecs.register::<SimpleMarker<SerializeMe>>();
+
+    // 插入一个实体标记 作为资源
+    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     // ------------------create entity 创建实体 ----------------------------------------------------
     let map = Map::new_map_rooms_and_corridors();
 

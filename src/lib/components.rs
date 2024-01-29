@@ -2,13 +2,13 @@ use rltk::RGB;
 use specs::prelude::*;
 use specs_derive::*;
 // 创建组件
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
@@ -18,32 +18,32 @@ pub struct Renderable {
 }
 
 // 视野的组件 玩家的敌人都有视野组件
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Viewshed {
     pub visible_tiles: Vec<rltk::Point>, // 使用rltk 中的Point 来描述tiles的哪些被可见
     pub range: i32,
     // 为了提高性能，只有在需要时才更新视域，添加一个标志
     pub dirty: bool,
 }
-#[derive(Component)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Player {}
 
 // 怪物的组件 ，让怪物进行思考
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Monster {}
 
 // 怪物应该有名字，
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Name {
     pub name: String,
 }
 
 // 玩家 和 怪物都应该有这个组件，被阻挡的TIle
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct BlocksTile {}
 
 // 怪物和玩家的战斗数据
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
@@ -53,13 +53,13 @@ pub struct CombatStats {
 
 // -----------------------------------意图组件------------------------------------------------
 // 攻击意图
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct WantsToMelee {
     pub target: Entity,
 }
 
 // 遭受的攻击
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct SufferDamage {
     // 遭受多个攻击
     pub amount: Vec<i32>,
@@ -79,54 +79,54 @@ impl SufferDamage {
 }
 
 // item 定义物品的组件
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Item {}
 
 // 药水的实际作用
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct ProvidesHealing {
     // 恢复生命的数量
     pub heal_amount: i32,
 }
 // backpack  是否在背包中
-#[derive(Component, Debug, Clone)]
+#[derive(Component, ConvertSaveload, Debug, Clone)]
 pub struct InBackpack {
     pub owner: Entity,
 }
 
 // 构成物品 的 基本组件
 // 可以被消耗的物品
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Consumable {}
 
 // 组件，描述范围攻击
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Ranged {
     pub range: i32,
 }
 
 // 打击损伤，造成的损伤
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct InflictsDamage {
     pub damage: i32,
 }
 
 // AoE
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct AreaOfEffect {
     // 攻击半径
     pub radius: i32,
 }
 
 // 昏迷
-#[derive(Component, Debug)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Confusion {
     // 昏迷的第几个回合
     pub turns: i32,
 }
 // -----------------------------意图组件-------------------------------
 // 想要被拾取的物品，物品是什么，被哪个拾取
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
@@ -134,14 +134,17 @@ pub struct WantsToPickupItem {
 
 //intent 意图组件
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item: Entity,
     pub target: Option<rltk::Point>,
 }
 
 // user is the owning entity, the item is the item field, and it is aimed at target - if there is one
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToDropItem {
     pub item: Entity,
 }
+
+// 标记类型，marker type
+pub struct SerializeMe;

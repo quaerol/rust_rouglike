@@ -398,14 +398,41 @@ but because of Specs handles Entity 的方式，实体的ID 合成的，不能�
 main.rs to make use marker functionality
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 
+in components.rs, add marker type pub struct SerializeMe, in main.rs, add SerializeMe to the list of things that we register
+
+insert a marker entity as ECS resource
+
+in spawner.rs, tell each entity builder to include the marker,.marked::<SimpleMarker<SerializeMe>>() needs to be repeated for all of your spawner in this file
+use specs::saveload::{MarkedBuilder,SimpleMarker};
+
+7 The ConverSaveload(转换保存加载) derive macro
+
+Entity 类本身（由 Specs 提供）不能直接序列化， it's actually a **reference** to an identity in a special structure called a "slot map" 
+
+ in order to save and load Entity classes, it becomes necessary to convert these synthetic（合成） identities to unique ID numbers.
+
+Specs provides **a derive macro called ConvertSaveload for this purpose.** It works for most components, but not for all（但是不适合与所有的组件）
+
+序列化一个没有实体但**有数据的类型**非常容易：用 #[derive(Component, ConvertSaveload, Clone)] 标记它。
 
 
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+}
+Clone 表示“这个结构可以在内存中从一个点复制到另一个点”。这对于 Serde 的内部工作是必要的，并且还允许您将 .clone() 附加到对组件的任何引用的末尾 - 并获得它的另一个完美副本
 
+When you have a component with no data, the ConvertSaveload macro doesn't work! so can fall back to the default Serde syntax. Here's a non-data ("tag") class:
 
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Player {}
 
+8 Actually saving something
+move code for loading and saving into savedload_system.rs 
 
-
-
+implementing save_game function, extend saveload_system.rs, 
+bulid macro serialize_individually 解决Serde 和Specs 之间 协同工作的问题
 
 
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull

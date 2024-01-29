@@ -1,4 +1,4 @@
-use crate::{GameLog, InBackpack, Map, Name, Position, State, Viewshed};
+use crate::{GameLog, InBackpack, Map, Name, Position, RunState, State, Viewshed};
 
 use super::{CombatStats, Player};
 use rltk::{Console, Point, Rltk, VirtualKeyCode, RGB};
@@ -6,8 +6,6 @@ use specs::prelude::*;
 
 // UI 元素
 // 不能光看，开始要写
-
-
 
 // 绘制UI
 pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
@@ -444,9 +442,8 @@ pub fn ranged_target(
     (ItemMenuResult::NoResponse, None)
 }
 
-
 // --------------------------------- main menu-------------------------------
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum MainMenuSelection {
     NewGame,
     LoadGame,
@@ -459,66 +456,118 @@ pub enum MainMenuResult {
 }
 
 // 绘制主菜单
-pub fn main_menu(gs:&mut State,ctx:&mut Rltk)-> MainMenuResult {
+pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
     // 从 State 得到现在所处的运行状态，如果当前的状态是 MainMenu, 显示主菜单
     let runstate = gs.ecs.fetch::<RunState>();
-    ctx.print_color_centered(15, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Rust Roguelike Tutorial");
+    ctx.print_color_centered(
+        15,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Rust Roguelike Tutorial",
+    );
 
     //  selection初始化是哪个状态
-    if let RunState::MainMenu{menu_selection:selection} = *runstate{
+    if let RunState::MainMenu {
+        menu_selection: selection,
+    } = *runstate
+    {
         // 选中和没有选中是不同的样式
         if selection == MainMenuSelection::NewGame {
-            ctx.print_color_centered(24, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK), "Begin New Game");
+            ctx.print_color_centered(
+                24,
+                RGB::named(rltk::MAGENTA),
+                RGB::named(rltk::BLACK),
+                "Begin New Game",
+            );
         } else {
-            ctx.print_color_centered(24, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Begin New Game");
+            ctx.print_color_centered(
+                24,
+                RGB::named(rltk::WHITE),
+                RGB::named(rltk::BLACK),
+                "Begin New Game",
+            );
         }
 
         if selection == MainMenuSelection::LoadGame {
-            ctx.print_color_centered(25, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK), "Load Game");
+            ctx.print_color_centered(
+                25,
+                RGB::named(rltk::MAGENTA),
+                RGB::named(rltk::BLACK),
+                "Load Game",
+            );
         } else {
-            ctx.print_color_centered(25, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Load Game");
+            ctx.print_color_centered(
+                25,
+                RGB::named(rltk::WHITE),
+                RGB::named(rltk::BLACK),
+                "Load Game",
+            );
         }
 
         if selection == MainMenuSelection::Quit {
-            ctx.print_color_centered(26, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK), "Quit");
+            ctx.print_color_centered(
+                26,
+                RGB::named(rltk::MAGENTA),
+                RGB::named(rltk::BLACK),
+                "Quit",
+            );
         } else {
             ctx.print_color_centered(26, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
         }
 
         // 按键
-        match ctx.key{
-            // 匹配 按键 
+        match ctx.key {
+            // 匹配 按键
             // 如果按键没有按下，就是当前选中的选项
-            None => return MainMenuResult::NoSelection{
-                // selection 是一个名词，
-                selected:selection
-            },
-            // 各个按键的功能
-            Some(key) => {
-                match key {
-                    VirtualKeyCode::Escape => { return MainMenuResult::NoSelection{ selected: MainMenuSelection::Quit } }
-                    VirtualKeyCode::Up => {
-                        let newselection;
-                        match selection {
-                            MainMenuSelection::NewGame => newselection = MainMenuSelection::Quit,
-                            MainMenuSelection::LoadGame => newselection = MainMenuSelection::NewGame,
-                            MainMenuSelection::Quit => newselection = MainMenuSelection::LoadGame
-                        }
-                        return MainMenuResult::NoSelection{ selected: newselection }
-                    }
-                    VirtualKeyCode::Down => {
-                        let newselection;
-                        match selection {
-                            MainMenuSelection::NewGame => newselection = MainMenuSelection::LoadGame,
-                            MainMenuSelection::LoadGame => newselection = MainMenuSelection::Quit,
-                            MainMenuSelection::Quit => newselection = MainMenuSelection::NewGame
-                        }
-                        return MainMenuResult::NoSelection{ selected: newselection }
-                    }
-                    VirtualKeyCode::Return => return MainMenuResult::Selected{ selected : selection },
-                    _ => return MainMenuResult::NoSelection{ selected: selection }
-                }
+            None => {
+                return MainMenuResult::NoSelection {
+                    // selection 是一个名词，
+                    selected: selection,
+                };
             }
+            // 各个按键的功能
+            Some(key) => match key {
+                VirtualKeyCode::Escape => {
+                    return MainMenuResult::NoSelection {
+                        selected: MainMenuSelection::Quit,
+                    }
+                }
+                VirtualKeyCode::Up => {
+                    let newselection;
+                    match selection {
+                        MainMenuSelection::NewGame => newselection = MainMenuSelection::Quit,
+                        MainMenuSelection::LoadGame => newselection = MainMenuSelection::NewGame,
+                        MainMenuSelection::Quit => newselection = MainMenuSelection::LoadGame,
+                    }
+                    return MainMenuResult::NoSelection {
+                        selected: newselection,
+                    };
+                }
+                VirtualKeyCode::Down => {
+                    let newselection;
+                    match selection {
+                        MainMenuSelection::NewGame => newselection = MainMenuSelection::LoadGame,
+                        MainMenuSelection::LoadGame => newselection = MainMenuSelection::Quit,
+                        MainMenuSelection::Quit => newselection = MainMenuSelection::NewGame,
+                    }
+                    return MainMenuResult::NoSelection {
+                        selected: newselection,
+                    };
+                }
+                VirtualKeyCode::Return => {
+                    return MainMenuResult::Selected {
+                        selected: selection,
+                    }
+                }
+                _ => {
+                    return MainMenuResult::NoSelection {
+                        selected: selection,
+                    }
+                }
+            },
         }
+    }
+    MainMenuResult::NoSelection {
+        selected: MainMenuSelection::NewGame,
     }
 }

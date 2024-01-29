@@ -1,10 +1,10 @@
 use rltk::{GameState, Rltk};
+use serde::*;
 use specs::Entity;
 use specs::Join;
 use specs::RunNow;
 use specs::World;
 use specs::WorldExt;
-use serde::*;
 
 pub mod rect;
 pub use rect::*;
@@ -45,6 +45,8 @@ pub use inventory_system::*;
 pub mod spawner;
 pub use spawner::*;
 
+pub mod saveload_system;
+pub use saveload_system::*;
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -281,33 +283,32 @@ impl GameState for State {
             }
             RunState::MainMenu { .. } => {
                 // 得到菜单及其选项
-                let result = gui::main_menu(self,ctx);
+                let result = gui::main_menu(self, ctx);
                 match result {
-                    gui::MainMenuResult::NoSelection{
-                        selected
-                    }=> newrunstate = RunState::MainMenu{
-                        menu_selection: selected
-                    },
-                    gui::MainMenuResult::Selected{
-                        selected
-                    }=> {
-                        match selected {
-                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                            gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
-                            gui::MainMenuSelection::Quit => {
-                                ::std::process::exit(0);
-                            }
-                        },
+                    gui::MainMenuResult::NoSelection { selected } => {
+                        newrunstate = RunState::MainMenu {
+                            menu_selection: selected,
+                        }
                     }
+                    gui::MainMenuResult::Selected { selected } => match selected {
+                        gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                        gui::MainMenuSelection::LoadGame => {
+                            saveload_system::load_game(&mut self.ecs);
+                            newrunstate = RunState::AwaitingInput;
+                            saveload_system::delete_save();
+                        }
+                        gui::MainMenuSelection::Quit => {
+                            ::std::process::exit(0);
+                        }
+                    },
                 }
             }
             // 处理 这个 状态 下的逻辑
             RunState::SaveGame => {
-                // 从string 转为 json 格式
-                let data = serde_json::to_string(&self.ecs.fetch::<Map>()).unwrap();
-                println!("{}", data);
                 saveload_system::save_game(&mut self.ecs);
-                newrunstate = RunState::MainMenu{ menu_selection : gui::MainMenuSelection::Quit };
+                newrunstate = RunState::MainMenu {
+                    menu_selection: gui::MainMenuSelection::Quit,
+                };
             }
         }
 

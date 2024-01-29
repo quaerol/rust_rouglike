@@ -5,6 +5,8 @@ use super::{BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable
 use rltk::{RandomNumberGenerator, RGB};
 use specs::prelude::*;
 
+use specs::saveload::{MarkedBuilder, SimpleMarker};
+
 // 怪物 物品 的数量
 const MAX_MONSTERS: i32 = 4;
 const MAX_ITEMS: i32 = 2;
@@ -96,6 +98,7 @@ pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
             defense: 2,
             power: 5,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -114,6 +117,7 @@ pub fn random_monster(ecs: &mut World, x: i32, y: i32) {
         _ => goblin(ecs, x, y),
     }
 }
+
 fn orc(ecs: &mut World, x: i32, y: i32) {
     monster(ecs, x, y, rltk::to_cp437('o'), "Orc");
 }
@@ -147,10 +151,23 @@ fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharTy
             defense: 1,
             power: 4,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 // ----------------------------item------------------------------------
-
+fn random_item(ecs: &mut World, x: i32, y: i32) {
+    let roll: i32;
+    {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        roll = rng.roll_dice(1, 2);
+    }
+    match roll {
+        1 => health_potion(ecs, x, y),
+        2 => fireball_scroll(ecs, x, y),
+        3 => confusion_scroll(ecs, x, y),
+        _ => magic_missile_scroll(ecs, x, y),
+    }
+}
 // spawn health_potion,
 // 在地图中创建 恢复药剂实体，需要世界和创建的位置
 // 组件表明 它是一个item consumed on use, provide 8 points of healing
@@ -170,6 +187,7 @@ fn health_potion(ecs: &mut World, x: i32, y: i32) {
         .with(Item {})
         .with(Consumable {})
         .with(ProvidesHealing { heal_amount: 8 }) // 恢复生命值的数量 组件
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -194,6 +212,7 @@ fn magic_missile_scroll(ecs: &mut World, x: i32, y: i32) {
         .with(Consumable {})
         .with(Ranged { range: 6 })
         .with(InflictsDamage { damage: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -217,6 +236,7 @@ fn fireball_scroll(ecs: &mut World, x: i32, y: i32) {
         .with(InflictsDamage { damage: 20 })
         // 范围攻击组件
         .with(AreaOfEffect { radius: 3 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -239,19 +259,8 @@ fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
         // Confusion Components
         // turns 4 个回合
         .with(Confusion { turns: 4 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
-fn random_item(ecs: &mut World, x: i32, y: i32) {
-    let roll: i32;
-    {
-        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        roll = rng.roll_dice(1, 2);
-    }
-    match roll {
-        1 => health_potion(ecs, x, y),
-        2 => fireball_scroll(ecs, x, y),
-        3 => confusion_scroll(ecs, x, y),
-        _ => magic_missile_scroll(ecs, x, y),
-    }
-}
+
 // 然后在main.rs 中使用该模块的生成函数，创建 玩家 和 怪物 物品

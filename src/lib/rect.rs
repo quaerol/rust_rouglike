@@ -1,5 +1,7 @@
 // in rust ,when you make a new file in rust ,it automatically becomes a module.
 // 2.3 we'll start making a map. Our goal is to randomly place rooms, and join them together with corridors(走廊).
+use serde::{Deserialize, Serialize};
+
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct Rect {
     pub x1: i32,

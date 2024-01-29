@@ -1,9 +1,9 @@
 // use crate::*;
 use crate::{rect::*, Player, Viewshed};
 use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
+use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use serde::{Serialize, Deserialize}; 
 
 // -----------------------Map section --------------------
 // 公开的常量 地图的大小
@@ -261,5 +261,3 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
         }
     }
 }
-
-
