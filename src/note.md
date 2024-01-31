@@ -512,7 +512,6 @@ next step, we go to create the goto_next_level function, also inside the State i
 您可以下降到一个实际上无限的（它实际上受 32 位整数的大小限制）地牢。已经了解 ECS 如何提供帮助，以及我们的序列化工作如何在我们添加到项目时轻松扩展以包含像这样的新功能。
 
 
-
 避免借用和生命周期的问题，创建一个新的是scope，然后在这个scope 中clone, 把这个clong 给 scope 外的一个变量，这个scope结束会自动销毁原始的数据，
 
 git 的使用中，需要先将本地的修改 提交(add commit push) 然后才可以 从远程进行pull
@@ -524,7 +523,26 @@ currently, you can advance through multiple dungeon levels, but they all have th
 1 adding a wait key
 roguelike 游戏的一个重要战术元素是跳过回合的能力 - 让怪物向你袭来（并且不会受到第一击！）
 the bility to skip a turn, 跳过回合，
-in player.rs add numeric keypad 5 and space to be skip，implement skip_turn function
+in player.rs add numeric keypad 5 and space to be skip，implement skip_turn function:
 looks up various entities, and then iterates the player is viewshed using the tile_content system, it checks what the player can see for monsters; if no monster is present, it heals the player by 1 hp. 
 
 这为游戏增加了一个很好的战术维度：你可以将敌人引向你，并从战术布局中受益。 Roguelike 游戏的另一个常见功能是等待，如果附近没有敌人，就会提供一些治疗。
+
+2 Increased difficulty as you delve: spawn tables 随着leve 难度变化
+怪物和物品的生成更加随机，有些东西常见，有些东西稀有
+create a random_table system for use in the spawn system, create new file, random_table.rs, c
+struct RandomEntity, 随机的实体，name, weight 权重影响珍惜程度
+pub struct RandomTable， 一个向量包含RandomEntity，总体的权重
+extend spawner.rs, create new function room_table, replace the room spawning code with room_table function
+
+3 Increasing the spawn rate as you delve 随着探索增加生成率
+solve the problem of later levels of being of the same difficulty as earlier ones,
+随着 下降 产生更多的实体，start by modifying the funciton signature of spawn_room to accept the map depth
+根据深度值改变创建的实体的数量
+
+4 Increasing the weights by depth, 根据深度增加权重
+modify the room_tabel function to include map depth, also change the call to it in spawn_room to use it
+
+we now have a dungeon that increases in difficulty as you descend, in the next chapter, giving your character some progression as well(through equipment), to balance things out
+
+

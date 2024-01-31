@@ -64,7 +64,7 @@ pub fn save_game(ecs: &mut World) {
         ecs.delete_entity(savehelper).expect("Crash on cleanup");
     }
 }
-// 一个语言添加新的语法，编译器完成这个新得语法对应得特性
+// 一个语言添加新的语法，编译器完成这个新得语法对应得特性   
 // 添加一个存根函数，stub function save_game, 这个存根函数会在web 平台时 进行编译，这个函数没有实现，
 // 没有这个函数 web 平台得编译会失败
 #[cfg(target_arch = "wasm32")]
