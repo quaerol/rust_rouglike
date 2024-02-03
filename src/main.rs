@@ -35,21 +35,19 @@ fn main() -> rltk::BError {
 
     gs.ecs.register::<Viewshed>(); // 将组件注册到系统中
     gs.ecs.register::<BlocksTile>();
-
-    gs.ecs.register::<Player>();
-    gs.ecs.register::<Monster>();
-    gs.ecs.register::<Name>();
-
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<WantsToMelee>();
-    gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Confusion>();
 
     // 物品组件
     gs.ecs.register::<Item>();
-
+    gs.ecs.register::<ProvidesHealing>();
+    gs.ecs.register::<InflictsDamage>();
+    gs.ecs.register::<AreaOfEffect>();
+    gs.ecs.register::<Consumable>();
+    gs.ecs.register::<Ranged>();
     gs.ecs.register::<InBackpack>();
 
     // 意图组件

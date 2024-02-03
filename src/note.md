@@ -16,8 +16,8 @@ git add .
 git commit -m ''
 git push
 
-### 2.1 实体和组件
-### 2.4. Field of View
+## 2.1 实体和组件
+## 2.4. Field of View
 随着人物的移动逐渐显示地图，将人物周围一定范围内的地图显示出来，其余全部都是黑色，代表呗人物看到的范围
 map refactor  ,将与地图相关的数据和函数放在一个，struct map , impl map， 这样可以直接传递map 给使用者，而不是描述地图的一个 vector （一个数据类型）
 
@@ -46,7 +46,7 @@ map 中有哪些内容，地图中title 的特性，分类，哪些玩家还没�
 
 是为了保存状态，信息，
 
-### 2.5 monster
+## 2.5 monster
 1，rendering a monster in the center ot each room
 怪物有renderable 组件，有 viewshed 组件，
 
@@ -74,7 +74,7 @@ You could let monsters think every time anything moves (and you probably will wh
 有些人，可以暂时的赚了一部分钱，但是因为一些人生的脚本，这些钱并不会被留在在他的手上，他最后还是会败尽家财
 
 
-### 2.6 Dealing Damage
+## 2.6 Dealing Damage
 教程链接
 https://bfnightly.bracketproductions.com/chapter_9.html
 
@@ -276,7 +276,7 @@ change render section in tick method
 
 *每个项目都有对应的自己的文档*
 
-### 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
+## 2.9 Ranged Scrolls and Targeting 远程卷轴和目标
 
 last chapter, we added items and inventory - and a single item, a health potion, now a second item type: a scroll of magic missile(魔法导弹卷轴), the lets you zap（攻击） an entiy at range
 
@@ -557,8 +557,15 @@ change a couple of calls in main.rs to pass in the depth
 
 
 4 Increasing the weights by depth, 根据深度增加权重
-modify the room_tabel function to include map depth, also change the call to it in spawn_room to use it
+modify the **room_table function** to include map depth, also change the call to it in spawn_room to use it
 
-we now have a dungeon that increases in difficulty as you descend, in the next chapter, giving your character some progression as well(through equipment), to balance things out
+we now have a dungeqon that increases in difficulty as you descend, in the next chapter, giving your character some progression as well(through equipment), to balance things out
 
 
+## 2.13 Equipment 装备
+equipping a weapon and shield, 装备武器和盾牌
+
+1 adding some items you can wear/wield
+extend spawners.rs, new function dagger(匕首) and shield, 创建匕首 和 盾牌， 比将其添加到生成表中 和 spawn_room 
+
+2 equipping the item 装备物品
