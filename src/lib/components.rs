@@ -1,5 +1,12 @@
 use rltk::RGB;
+
+use serde::{Deserialize, Serialize};
+use specs::error::NoError;
 use specs::prelude::*;
+use specs::prelude::*;
+use specs::saveload::{ConvertSaveload, Marker};
+
+use specs_derive::*;
 use specs_derive::*;
 // 创建组件
 #[derive(Component, ConvertSaveload, Clone)]
@@ -152,5 +159,5 @@ pub struct SerializeMe;
 // Special component that exists to help serialize the game data
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SerializationHelper {
-    pub map : super::map::Map
+    pub map: super::map::Map,
 }

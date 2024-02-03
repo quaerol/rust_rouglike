@@ -3,6 +3,7 @@ use rltk::{GameState, Point, Rltk, RGB};
 use serde::*;
 use serde::{Deserialize, Serialize};
 use specs::prelude::*;
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 use tutorial::*; // use tutorial lib
 fn main() -> rltk::BError {
     // use builder
@@ -60,6 +61,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<SimpleMarker<SerializeMe>>();
 
     // 插入一个实体标记 作为资源
+    gs.ecs.register::<SerializationHelper>();
+
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     // ------------------create entity 创建实体 ----------------------------------------------------
     // 为等级 1 创建地图
@@ -76,7 +79,7 @@ fn main() -> rltk::BError {
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
 
     for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(&mut gs.ecs, room);
+        spawner::spawn_room(&mut gs.ecs, room, 1);
     }
 
     // --------------add resource in world  ,shared data the whole ecs can use --------------------------------

@@ -66,8 +66,14 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
 
     // 显示 地图的深度 depth
     let map = ecs.fetch::<Map>();
-    let depth = format!("Depth: {}", map.depth};
-    ctx.print_color(2,43,RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &depth);
+    let depth = format!("Depth: {}", map.depth);
+    ctx.print_color(
+        2,
+        43,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        &depth,
+    );
 }
 
 // 画出工具提示
@@ -494,8 +500,8 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
                 "Begin New Game",
             );
         }
-        // 
-        if save_exists{
+        //
+        if save_exists {
             if selection == MainMenuSelection::LoadGame {
                 ctx.print_color_centered(
                     25,

@@ -47,6 +47,11 @@ pub use spawner::*;
 
 pub mod saveload_system;
 pub use saveload_system::*;
+
+// 随机常见 生成表
+pub mod random_table;
+pub use random_table::*;
+
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -72,7 +77,7 @@ pub enum RunState {
     },
     // 保存游戏的状态
     SaveGame,
-    NextLevel
+    NextLevel,
 }
 
 pub struct State {
@@ -116,6 +121,27 @@ impl State {
         self.ecs.maintain();
     }
 }
+
+impl State {
+    // 去到下一层，房间内 生成点 和生成的内容变化
+    fn goto_next_level(&mut self) {
+        // Build a new map and place the player
+        let worldmap;
+        let current_depth;
+        {
+            let mut worldmap_resource = self.ecs.write_resource::<Map>();
+            current_depth = worldmap_resource.depth;
+            *worldmap_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
+            worldmap = worldmap_resource.clone();
+        }
+
+        // Spawn bad guys
+        for room in worldmap.rooms.iter().skip(1) {
+            spawner::spawn_room(&mut self.ecs, room, current_depth + 1);
+        }
+    }
+}
+
 impl GameState for State {
     // 每一帧运行
     fn tick(&mut self, ctx: &mut Rltk) {
@@ -312,6 +338,9 @@ impl GameState for State {
                 newrunstate = RunState::MainMenu {
                     menu_selection: gui::MainMenuSelection::Quit,
                 };
+            }
+            RunState::NextLevel => {
+                todo!()
             }
         }
 

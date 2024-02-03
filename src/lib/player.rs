@@ -101,6 +101,58 @@ fn get_item(ecs: &mut World) {
         }
     }
 }
+
+// Skip turn
+fn skip_turn(ecs: &mut World) -> RunState {
+    // looks up various entities
+    let player_entity = ecs.fetch::<Entity>();
+
+    let viewshed_components = ecs.read_storage::<Viewshed>();
+    let monsters = ecs.read_storage::<Monster>();
+
+    let worldmap_resource = ecs.fetch::<Map>();
+
+    let mut can_heal = true;
+    // iterates the player is viweshed using the tile_conten system
+    let viewshed = viewshed_components.get(*player_entity).unwrap();
+    for tile in viewshed.visible_tiles.iter() {
+        let idx = worldmap_resource.xy_idx(tile.x, tile.y);
+        for entity_id in worldmap_resource.tile_content[idx].iter() {
+            // check waht the player can see for monster,
+            let mob = monsters.get(*entity_id);
+            match mob {
+                None => {}
+                Some(_) => {
+                    can_heal = false;
+                }
+            }
+        }
+    }
+
+    // if no monster is present, it heals the player by 1 hp,
+    if can_heal {
+        let mut health_components = ecs.write_storage::<CombatStats>();
+        let palyer_hp = health_components.get_mut(*player_entity).unwrap();
+        palyer_hp.hp = i32::min(palyer_hp.hp + 1, palyer_hp.max_hp);
+    }
+    RunState::PlayerTurn
+}
+// 尝试到下一个level
+pub fn try_next_level(ecs: &mut World) -> bool {
+    let player_pos = ecs.fetch::<Point>();
+    let map = ecs.fetch::<Map>();
+    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
+    if map.tiles[player_idx] == TileType::DownStairs {
+        true
+    } else {
+        let mut gamelog = ecs.fetch_mut::<GameLog>();
+        gamelog
+            .entries
+            .push("There is no way down from here.".to_string());
+        false
+    }
+}
+
 pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     // Player movement
     if let Some(key) = ctx.key {
@@ -147,10 +199,10 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
                     return RunState::NextLevel;
                 }
             }
-            
+
             // Skip Turn
-            VirtualKeyCode::Numpad5 => return skip_turn(&mut,gs ecs), 
-            VirtualKeyCode::Space => return skip_turn(&mut,gs ecs), 
+            VirtualKeyCode::Numpad5 => return skip_turn(&mut gs.ecs),
+            VirtualKeyCode::Space => return skip_turn(&mut gs.ecs),
             _ => {
                 return RunState::AwaitingInput;
             }
@@ -158,43 +210,4 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     }
 
     RunState::PreRun
-}
-
-// Skip turn
-fn skip_turn(ecs: &mut World) -> RunState{
-    // looks up various entities
-    let player_entity = ecs.fetch::<Entity>();
-
-    let viewshed_components = ecs,read_storage::<Viewshed>();
-    let monsters = ecs.read_storage::<Monster>();
-
-    let worldmap_resource = ecs.fetch::<Map>();
-
-    let mut can_heal = true;
-    // iterates the player is viweshed using the tile_conten system
-    let viewshed = viewshed_components.get(*player_entity).unwrap();
-    for tile in viewshed.visible_tiles.iter() {
-        let idx = worldmap_resource.xy_idx(tile.x, tile.y);
-        for entity_id in worldmap_resource.tile_content[idx].iter(){
-             // check waht the player can see for monster,
-            let mob = monster.get(*entity_id);
-            match mob {
-                None => {}
-                Some(_) => { can_heal = false; }
-            }
-        }
-    }
-   
-    // if no monster is present, it heals the player by 1 hp, 
-    if can_heal {
-        let mut health_components = ecs.write_storage::<CombatStats>();
-        let palyer_hp = health_components.get_mut(*player_entity).unwrap();
-        palyer_hp.hp = i32::min(palyer_hp.hp+1,palyer_hp.max_hp);
-    }
-    RunState::PlayerTurn
-}
-// 尝试到下一个level 
-pub fn try_next_level(ecs:&mut World) -> bool{
-    let player_pos = ecs.fetch::<point>();
-    let map = ecs.fetch::<Map>();
 }

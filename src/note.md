@@ -523,6 +523,7 @@ currently, you can advance through multiple dungeon levels, but they all have th
 1 adding a wait key
 roguelike 游戏的一个重要战术元素是跳过回合的能力 - 让怪物向你袭来（并且不会受到第一击！）
 the bility to skip a turn, 跳过回合，
+
 in player.rs add numeric keypad 5 and space to be skip，implement skip_turn function:
 looks up various entities, and then iterates the player is viewshed using the tile_content system, it checks what the player can see for monsters; if no monster is present, it heals the player by 1 hp. 
 
@@ -531,14 +532,29 @@ looks up various entities, and then iterates the player is viewshed using the ti
 2 Increased difficulty as you delve: spawn tables 随着leve 难度变化
 怪物和物品的生成更加随机，有些东西常见，有些东西稀有
 create a random_table system for use in the spawn system, create new file, random_table.rs, c
+
 struct RandomEntity, 随机的实体，name, weight 权重影响珍惜程度
 pub struct RandomTable， 一个向量包含RandomEntity，总体的权重
+impl RandomTable -> new method, add method, roll method,
+
 extend spawner.rs, create new function room_table, replace the room spawning code with room_table function
+
+#[allow(clippy::map_entry)]
+clippy是Rust的一个静态代码分析工具，用于检查代码中的潜在问题和不良习惯。map_entry警告是指在使用**HashMap**时，应该使用entry方法来插入或更新键值对，而不是使用get方法再进行插入或更新操作。通过在代码中添加#[allow(clippy::map_entry)]注释，可以告诉编译器忽略这个警告，不会对代码进行相关的检查和提示。
+
+simplify a bit, Delete the NUM_MONSTERS, random_monster and random_item functions in spawner.rs, exchange spawn_room function 
+
+1d7-3 (for a -2 to 4 range).
+
+find randome spawn point, add it into the spawn list, then we iterate the spawn list, match on the roll result and spawn monster and items
 
 3 Increasing the spawn rate as you delve 随着探索增加生成率
 solve the problem of later levels of being of the same difficulty as earlier ones,
-随着 下降 产生更多的实体，start by modifying the funciton signature of spawn_room to accept the map depth
+随着 下降 产生更多的实体，start by modifying the funciton signature of **spawn_room** to accept the map depth
 根据深度值改变创建的实体的数量
+
+change a couple of calls in main.rs to pass in the depth
+
 
 4 Increasing the weights by depth, 根据深度增加权重
 modify the room_tabel function to include map depth, also change the call to it in spawn_room to use it
