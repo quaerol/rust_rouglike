@@ -67,12 +67,16 @@ impl<'a> System<'a> for ItemUseSystem {
         Entities<'a>,
         WriteStorage<'a, WantsToUseItem>,
         ReadStorage<'a, Name>,
+        ReadStorage<'a, Consumable>,
         ReadStorage<'a, ProvidesHealing>,
         ReadStorage<'a, InflictsDamage>,
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, SufferDamage>,
         ReadStorage<'a, AreaOfEffect>,
         WriteStorage<'a, Confusion>,
+        ReadStorage<'a, Equippable>,
+        WriteStorage<'a, Equipped>,
+        WriteStorage<'a, InBackpack>,
     );
     fn run(&mut self, data: Self::SystemData) {
         let (
@@ -82,14 +86,17 @@ impl<'a> System<'a> for ItemUseSystem {
             entities,
             mut wants_use,
             names,
+            consumables,
             healing,
             inflict_damage,
             mut combat_stats,
             mut suffer_damage,
             aoe,
             mut confused,
+            equippable,
+            mut equipped,
+            mut backpack,
         ) = data;
-
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
             // 物体是否使用的标志
@@ -97,7 +104,6 @@ impl<'a> System<'a> for ItemUseSystem {
 
             // Targeting 存储待攻击 实体
             let mut targets: Vec<Entity> = Vec::new();
-
             match useitem.target {
                 None => {
                     // if　there is no target, apply it to the player
@@ -134,6 +140,58 @@ impl<'a> System<'a> for ItemUseSystem {
                     }
                 }
             }
+
+            // if it is equippable, then we want to equip it -  and unequip whatever else in that slot
+            let item_equippable = equippable.get(useitem.item);
+            match item_equippable {
+                None => {}
+                Some(can_equip) => {
+                    let target_slot = can_equip.slot;
+                    let target = targets[0];
+
+                    // Remove any items the target has in the item's slot 移除目标物品槽中的任何物品
+                    let mut to_unequip: Vec<Entity> = Vec::new();
+                    for (item_entity, already_equipped, name) in
+                        (&entities, &equipped, &names).join()
+                    {
+                        // 如果 这个item_entity 被装备，将其卸下放到to_unequip 列表 中
+                        if already_equipped.owner == target && already_equipped.slot == target_slot
+                        {
+                            to_unequip.push(item_entity);
+                            if target == *player_entity {
+                                gamelog.entries.push(format!("You unequip {}.", name.name));
+                            }
+                        }
+                    }
+                    // 修改to_unequip 中的实体的组件信息，表示这个实体被放到背包中
+                    for item in to_unequip.iter() {
+                        equipped.remove(*item);
+                        backpack
+                            .insert(*item, InBackpack { owner: target })
+                            .expect("Unable to insert backpack entry");
+                    }
+
+                    // Wield使用 the item
+                    equipped
+                        .insert(
+                            useitem.item,
+                            Equipped {
+                                owner: target,
+                                slot: target_slot,
+                            },
+                        )
+                        .expect("Unable to insert equipped component");
+                    backpack.remove(useitem.item);
+
+                    if target == *player_entity {
+                        gamelog.entries.push(format!(
+                            "You equip {}.",
+                            names.get(useitem.item).unwrap().name
+                        ));
+                    }
+                }
+            }
+
             // if it heals, apply the healing
             let item_heals = healing.get(useitem.item);
             match item_heals {
@@ -277,5 +335,32 @@ impl<'a> System<'a> for ItemDropSystem {
         }
         // 清除 wants_drop 组件存储器
         wants_drop.clear();
+    }
+}
+
+// 移除装备的系统
+pub struct ItemRemoveSystem {}
+
+impl<'a> System<'a> for ItemRemoveSystem {
+    #[allow(clippy::type_complexity)]
+    type SystemData = (
+        Entities<'a>,
+        WriteStorage<'a, WantsToRemoveItem>,
+        WriteStorage<'a, Equipped>,
+        WriteStorage<'a, InBackpack>,
+    );
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut wants_remove, mut equipped, mut backpack) = data;
+
+        for (entity, to_remove) in (&entities, &wants_remove).join() {
+            // 从equipped 组件存储器移除这个实体
+            equipped.remove(to_remove.item);
+            // 将这个实体加入到equipped 组件存储器
+            backpack
+                .insert(to_remove.item, InBackpack { owner: entity })
+                .expect("Unable to insert backpack");
+        }
+
+        wants_remove.clear();
     }
 }

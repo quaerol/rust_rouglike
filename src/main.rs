@@ -27,8 +27,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Viewshed>();
-    // gs.ecs.register::<LeftWalker>();
-    // gs.ecs.register::<LeftMover>();
+
     gs.ecs.register::<Player>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
@@ -49,6 +48,13 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Consumable>();
     gs.ecs.register::<Ranged>();
     gs.ecs.register::<InBackpack>();
+
+    // 装备
+    gs.ecs.register::<Equippable>();
+    gs.ecs.register::<Equipped>();
+    gs.ecs.register::<MeleePowerBonus>();
+    gs.ecs.register::<DefenseBonus>();
+    gs.ecs.register::<WantsToRemoveItem>();
 
     // 意图组件
     gs.ecs.register::<WantsToPickupItem>();

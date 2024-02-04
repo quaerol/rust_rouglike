@@ -23,6 +23,8 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Magic Missile Scroll", 4)
         .add("Dagger", 3)
         .add("Shield", 3)
+        .add("Longsword", map_depth - 1)
+        .add("Tower Shield", map_depth - 1)
 }
 
 #[allow(clippy::map_entry)]
@@ -72,6 +74,8 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
             "Magic Missile Scroll" => magic_missile_scroll(ecs, x, y),
             "Dagger" => dagger(ecs, x, y),
             "Shield" => shield(ecs, x, y),
+            "Longsword" => longsword(ecs, x, y),
+            "Tower Shield" => tower_shield(ecs, x, y),
             _ => {}
         }
     }
@@ -271,6 +275,10 @@ fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
         // turns 4 个回合
         .with(Confusion { turns: 4 })
         .marked::<SimpleMarker<SerializeMe>>()
+        // 匕首是战斗插槽
+        .with(Equippable {
+            slot: EquipmentSlot::Melee,
+        })
         .build();
 }
 
@@ -289,6 +297,10 @@ fn dagger(ecs: &mut World, x: i32, y: i32) {
             name: "Dagger".to_string(),
         })
         .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Shield,
+        })
+        .with(MeleePowerBonus { power: 2 })
         // 序列化
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
@@ -308,8 +320,56 @@ fn shield(ecs: &mut World, x: i32, y: i32) {
             name: "Shield".to_string(),
         })
         .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Shield,
+        })
+        .with(DefenseBonus { defense: 1 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
+// 更多的装备
+// 长剑
+fn longsword(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('/'),
+            fg: RGB::named(rltk::YELLOW),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .with(Name {
+            name: "Longsword".to_string(),
+        })
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Melee,
+        })
+        .with(MeleePowerBonus { power: 4 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+// 塔盾
+fn tower_shield(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('('),
+            fg: RGB::named(rltk::YELLOW),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .with(Name {
+            name: "Tower Shield".to_string(),
+        })
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Shield,
+        })
+        .with(DefenseBonus { defense: 3 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
 // 然后在main.rs 中使用该模块的生成函数，创建 玩家 和 怪物 物品

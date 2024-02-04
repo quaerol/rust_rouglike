@@ -569,3 +569,63 @@ equipping a weapon and shield, 装备武器和盾牌
 extend spawners.rs, new function dagger(匕首) and shield, 创建匕首 和 盾牌， 比将其添加到生成表中 和 spawn_room 
 
 2 equipping the item 装备物品
+2.1 equipable components 可装备的部件
+we need a way to indicate that an item can be equipped, add new component EquipmenSlot(装备槽) and Equippable(可装备的) into component.rs 
+
+serialization support it and register it
+
+in saveload_system.rs, add it to serialize and deserialize components lists
+
+add equippable components to dagger and shield function in spawner.rs
+
+2.2 making items equippable 使得物品可以装备
+new components Equipped, 表示该物品处理被装备的状态，it will indicate what slot(插槽) is in use，register it in main.rs and include it in the serialization and dserialization lists in saveload_system.rs
+
+2.3 actually equipping the item 实际装备该物品
+实际装备该物品到某一个插槽，取消这个插槽中已经有的物品，在使用物品的接口中完成这个功能，open invenotry_system.rs, and we will edit ItemUseSystem, start by expanding the list of system we are reference:
+start by matching to see if we can equip the item, 
+if we can, it looks up the target slot for the item add looks to see if there is already an item in that slot, if  there, it moves it to the backpack,
+lastly, it adds an equipped components to the item entity with the owner(the player right now) and appropriate slot,
+
+when the player moves to the next level we delete a lot of entities, we want to include Equipped by the player as a reason to keep an item in the ECS, 
+in main.rs, we modify entitirs_to_remove_on_level_change
+
+2.4 granting combat bonuses 授予战斗奖励
+logically, s shield should provide some protection aganist incoming damage - and being stabbed with dagger should hurt more than being punched! to facilitate(促进) this, we will add some components in
+components.rs: MeleePowerBonus 近战攻击奖励 and DefenseBonus 防御奖励， remember to register them in main.rs, and saveload_system.rs, we can then modify our code in spawner.rs to add these components to 
+the right items dagger and shield
+
+modify the melee_combat_system to apply these bonus, we do this by adding some additional ECS queries to our system:
+We've added MeleePowerBonus, DefenseBonus and Equipped readers to the system.
+Once we've determined that the attacker is alive, we set offensive_bonus to 0. offensive 攻击
+we iterate all entities that have a MeleePowerBonus and Equipped entry, if they are equipped by attacker, we add their power bonus to offensive_bonus
+Once we have determined that the defender is alive, we set defensive_bonus to 0.
+We iterate all entities that have a DefenseBonus and an Equipped entry. If they are equipped by the target, we add their defense to the defense_bonus.
+When we calculate damage, we add the offense bonus to the power side - and add the defense bonus to the defense side.
+
+2.5 unequipping the item 取消装备该物品
+you may want to stop holding an item anf retur it to your backpack, bind the R key to remove an item, in player.rs, add this to the input code 
+add ShowRemoveItem to RunState in main.rs, add a handler for it in tick 
+mplement a new component in components.rs (see the source code for the serialization handler; 
+it's a cut-and-paste of the handler for wanting to drop an item, with the names changed):WantsToRemoveItem, has to be registered in main.rs and saveload_system.rs.
+
+in gui.rs, implement remove_item_menu, it is almost exactly the same as the item dropping menu, but changing waht is queries and the heading, it is be a grate idea to make these into more generic
+functions some item
+
+extend inventory_system.rs to support removing items, add pub ItemRemoveSystem system, add it to the in main.rs
+
+系统交由 ECS 的调度系统进行执行
+
+3 adding　some more powerful gear later
+
+add couple more items in spawner.rs: longsword, tower_shield, add them to the room_table, with a chance of appearing later in the dungeon(地牢)
+to add a quick fix to random_table.rs to ignore entrites with 0 or lower spawn chance(机会)
+
+4 the game over screen 游戏结束画面
+we are nearly at the end of the basic tutorial, let is make something happen when you die - rather than locking up in console loop, in the file damage_system.rs, we will edit the match statement 
+on player for delete_the_dead, add new state GameOver to RunState
+call game_over function to render the death menu, and when you quit we delete everything in the ECS, Lastly, in gui.rs, we will implement game_over function
+handle game_over_cleanup:
+If you cargo run now, and die - you'll get a message informing you that the game is done, and sending you back to the menu.
+
+# Section 2 - Strech Goals 延伸目标

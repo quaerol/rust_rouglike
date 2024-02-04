@@ -30,6 +30,7 @@ impl RandomTable {
         }
     }
 
+    // ignore entries with 0 or lower spawn chances, 忽略生成机会为0 或者更低的实体
     pub fn add<S: ToString>(mut self, name: S, weight: i32) -> RandomTable {
         self.total_weight += weight;
         self.entries

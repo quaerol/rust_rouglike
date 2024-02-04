@@ -1,4 +1,4 @@
-use crate::{GameLog, Name, Player};
+use crate::{GameLog, Name, Player, RunState};
 
 use super::{CombatStats, SufferDamage};
 use specs::prelude::*;
@@ -42,7 +42,11 @@ pub fn delete_the_dead(ecs: &mut World) {
                     }
                     dead.push(entity)
                 }
-                Some(_) => println!("you are dead"),
+                // 游戏结束
+                Some(_) => {
+                    let mut runstate = ecs.write_resource::<RunState>();
+                    *runstate = RunState::GameOver;
+                }
             }
         }
     }

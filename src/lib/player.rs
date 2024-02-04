@@ -192,6 +192,9 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             // Save and Quit
             VirtualKeyCode::Escape => return RunState::SaveGame,
 
+            // 显示卸载装备的列表
+            VirtualKeyCode::R => return RunState::ShowRemoveItem,
+
             // Level changes
             VirtualKeyCode::Period => {
                 if try_next_level(&mut gs.ecs) {
