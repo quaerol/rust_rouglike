@@ -30,9 +30,9 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>, // 记录玩家看到过的地图
     pub visible_tiles: Vec<bool>,  // 将记住了但是看不到的内容变灰
     pub blocked: Vec<bool>,        // 哪些tile不可以走上去，防止玩家和怪物重叠
-    // 深度 i32 is primitive type, and automatically handled by Serde, 
-    // So adding it here automatically adds it to our game save/load mechanism. 
-    pub depth:i32,
+    // 深度 i32 is primitive type, and automatically handled by Serde,
+    // So adding it here automatically adds it to our game save/load mechanism.
+    pub depth: i32,
     // 存储地图上tile 的内容
     // 跳过 对 tile_conent 的序列化
     #[serde(skip_serializing)]
@@ -107,7 +107,7 @@ impl Map {
     /// Makes a new map using the algorithm from http://rogueliketutorials.com/tutorials/tcod/part-3/
     /// This gives a handful of random rooms and corridors joining them together.
     // 可以为不同的level 创建地图
-    pub fn new_map_rooms_and_corridors(new_depth:i32) -> Self {
+    pub fn new_map_rooms_and_corridors(new_depth: i32) -> Self {
         // now map is full for wall
         let mut map = Map {
             tiles: vec![TileType::Wall; MAPCOUNT],
@@ -118,7 +118,7 @@ impl Map {
             visible_tiles: vec![false; MAPCOUNT],
             blocked: vec![false; MAPCOUNT],
             tile_content: vec![Vec::new(); MAPCOUNT],
-            depth:new_depth
+            depth: new_depth,
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -233,6 +233,58 @@ impl Algorithm2D for Map {
     }
 }
 
+// 检查 tile 是否被露出 revealed 以及他是否是一面墙
+fn is_revealed_and_wall(map: &Map, x: i32, y: i32) -> bool {
+    let idx = map.xy_idx(x, y);
+    map.tiles[idx] == TileType::Wall && map.revealed_tiles[idx]
+}
+// 绘制墙
+fn wall_glyph(map: &Map, x: i32, y: i32) -> rltk::FontCharType {
+    // map bounds, do not stepping outside of them, return a # symbol(ASCII 35)
+    if x < 1 || x > map.width - 2 || y < 1 || y > map.height - 2 as i32 {
+        return 35;
+    }
+
+    // create a 8-bit unsigned integer to act our bitmask, setting individual bits ana only need four of them, an 8-bit number is perfect
+    let mut mask: u8 = 0;
+    // check each of the 4 directions and add to the mask, a value of 3 means that we have neighbors to the north and south. 北 和 南
+
+    // 北
+    if is_revealed_and_wall(map, x, y - 1) {
+        mask += 1;
+    }
+    // 南
+    if is_revealed_and_wall(map, x, y + 1) {
+        mask += 2;
+    }
+    if is_revealed_and_wall(map, x - 1, y) {
+        mask += 4;
+    }
+    if is_revealed_and_wall(map, x + 1, y) {
+        mask += 8;
+    }
+    // them we match on the resulting mask bit and return the appropriate line-drawing character from the codepage 437 character set
+    match mask {
+        0 => 9,    // Pillar because we can't see neighbors
+        1 => 186,  // Wall only to the north
+        2 => 186,  // Wall only to the south
+        3 => 186,  // Wall to the north and south
+        4 => 205,  // Wall only to the west
+        5 => 188,  // Wall to the north and west
+        6 => 187,  // Wall to the south and west
+        7 => 185,  // Wall to the north, south and west
+        8 => 205,  // Wall only to the east
+        9 => 200,  // Wall to the north and east
+        10 => 201, // Wall to the south and east
+        11 => 204, // Wall to the north, south and east
+        12 => 205, // Wall to the east and west
+        13 => 202, // Wall to the east, west, and south
+        14 => 203, // Wall to the east, west, and north
+        15 => 206, // ╬ Wall on all sides
+        _ => 35,   // We missed one?
+    }
+}
+
 // retrieve the the map and the player's viewshed ,it only draw tiles present in the viewshed
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
     // write_storage 从ecs 中拿到注册的组件，设置为可写的存储
@@ -253,10 +305,11 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                     fg = RGB::from_f32(0.0, 0.5, 0.5);
                 }
                 TileType::Wall => {
-                    glyph = rltk::to_cp437('#');
+                    // 通过画线字符绘制墙
+                    glyph = wall_glyph(&*map, x, y);
                     fg = RGB::from_f32(0.0, 1.0, 0.0);
                 } // 如果tile 被 revealed 但是 玩家不可见 visible， 被设置为白色
-                TileType::DownStairs =>{
+                TileType::DownStairs => {
                     glyph = rltk::to_cp437('>');
                     fg = RGB::from_f32(0., 1.0, 1.0);
                 }

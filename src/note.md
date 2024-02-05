@@ -616,6 +616,7 @@ extend inventory_system.rs to support removing items, add pub ItemRemoveSystem s
 
 系统交由 ECS 的调度系统进行执行
 
+
 3 adding　some more powerful gear later
 
 add couple more items in spawner.rs: longsword, tower_shield, add them to the room_table, with a chance of appearing later in the dungeon(地牢)
@@ -629,3 +630,7 @@ handle game_over_cleanup:
 If you cargo run now, and die - you'll get a message informing you that the game is done, and sending you back to the menu.
 
 # Section 2 - Strech Goals 延伸目标
+this short chapter will show to use a bitmask to calculate appropriate 适当的 walls and render them appropriately 适当的
+
+1 counting neighbours to build our bitset
+function draw_map, match tile by type, extending the Wall section,new function wall_glyph 通过画线字符绘制墙
