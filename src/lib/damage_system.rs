@@ -1,4 +1,4 @@
-use crate::{GameLog, Name, Player, RunState};
+use crate::{GameLog, Map, Name, Player, Position, RunState};
 
 use super::{CombatStats, SufferDamage};
 use specs::prelude::*;
@@ -10,13 +10,22 @@ impl<'a> System<'a> for DamageSystem {
     type SystemData = (
         WriteStorage<'a, CombatStats>,
         WriteStorage<'a, SufferDamage>,
+        ReadStorage<'a, Position>,
+        WriteExpect<'a, Map>,
+        Entities<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut stats, mut damage) = data;
-        for (mut stats, damage) in (&mut stats, &damage).join() {
+        let (mut stats, mut damage, positions, mut map, entities) = data;
+        for (entity, mut stats, damage) in (&entities, &mut stats, &damage).join() {
             // 使用迭代器 dui damage 进行求和
             stats.hp -= damage.amount.iter().sum::<i32>();
+            // 在受攻击实体的位置渲染血迹
+            let pos = positions.get(entity);
+            if let Some(pos) = pos {
+                let idx = map.xy_idx(pos.x, pos.y);
+                map.bloodstains.insert(idx);
+            }
         }
         damage.clear();
     }

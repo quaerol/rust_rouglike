@@ -630,7 +630,31 @@ handle game_over_cleanup:
 If you cargo run now, and die - you'll get a message informing you that the game is done, and sending you back to the menu.
 
 # Section 2 - Strech Goals 延伸目标
+## 3.1 nice walls with bitsets 
 this short chapter will show to use a bitmask to calculate appropriate 适当的 walls and render them appropriately 适当的
 
 1 counting neighbours to build our bitset
 function draw_map, match tile by type, extending the Wall section,new function wall_glyph 通过画线字符绘制墙
+
+## 3.2 bloodstains 血迹
+add some particles and visual effects(in ASCII/CP437) to the game
+
+1 storing the blood
+tiles either have blood or they do not, to attach them to the map as a set, at top map.rs, include a new storage type HashSet
+
+2 rendering the blood
+we will indicate a bloodstain by changing a tile background to dark red, not show blood that is not visual range, extend map.rs render section
+
+3 blood for the blood god, 为血神献血
+add blood to the scene,  we will mark a tile as bloody whenever someone takes damage in it, adjust the DamageSystem in damage_system.rs to set the bloodstain
+## 3.3 particle effects 粒子效果
+
+## 3.4 hunger clock 饥饿时钟
+
+## 3.5 REX paint menu REX 绘制菜单
+
+## 3.6 simple traps 简单的陷阱
+
+# Section 3 - Generating Map 生成地图
+
+# Section 4 - Making A Game

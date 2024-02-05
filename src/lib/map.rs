@@ -4,6 +4,7 @@ use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
 use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 use std::cmp::{max, min};
+use std::collections::HashSet;
 
 // -----------------------Map section --------------------
 // 公开的常量 地图的大小
@@ -33,6 +34,9 @@ pub struct Map {
     // 深度 i32 is primitive type, and automatically handled by Serde,
     // So adding it here automatically adds it to our game save/load mechanism.
     pub depth: i32,
+    // tile 是否有血迹
+    pub bloodstains: HashSet<usize>,
+
     // 存储地图上tile 的内容
     // 跳过 对 tile_conent 的序列化
     #[serde(skip_serializing)]
@@ -119,6 +123,7 @@ impl Map {
             blocked: vec![false; MAPCOUNT],
             tile_content: vec![Vec::new(); MAPCOUNT],
             depth: new_depth,
+            bloodstains: HashSet::new(),
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -294,10 +299,11 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
     let mut x = 0;
 
     for (idx, tile) in map.tiles.iter().enumerate() {
+        // 是否被玩家看过
         if map.revealed_tiles[idx] {
-            // 是否被玩家看过
             let glyph;
             let mut fg;
+            let mut bg = RGB::from_f32(0., 0., 0.);
             // 如果这个tile 被玩家看到过，才render
             match tile {
                 TileType::Floor => {
@@ -314,11 +320,15 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                     fg = RGB::from_f32(0., 1.0, 1.0);
                 }
             }
-            if !map.visible_tiles[idx] {
-                fg = fg.to_greyscale()
+            // 渲染血迹
+            if map.bloodstains.contains(&idx) {
+                bg = RGB::from_f32(0.75, 0., 0.);
             }
-            ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
-
+            if !map.visible_tiles[idx] {
+                fg = fg.to_greyscale();
+                bg = RGB::from_f32(0., 0., 0.); // Don't show stains out of visual range
+            }
+            ctx.set(x, y, fg, bg, glyph);
             // Move the coordinates ，转到下一行
             x += 1;
             if x > MAPWIDTH as i32 - 1 {
