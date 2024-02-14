@@ -66,13 +66,17 @@ fn main() -> rltk::BError {
 
     // 插入一个实体标记 作为资源
     gs.ecs.register::<SerializationHelper>();
+    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     // 粒子生命周期组件
     gs.ecs.register::<ParticleLifetime>();
     // 将ParticleBuilder 作为资源
     gs.ecs.insert(particle_system::ParticleBuilder::new());
 
-    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+    // hunger food
+    gs.ecs.register::<HungerClock>();
+    gs.ecs.register::<ProvidesFood>();
+
     // ------------------create entity 创建实体 ----------------------------------------------------
     // 为等级 1 创建地图
     let map = Map::new_map_rooms_and_corridors(1);

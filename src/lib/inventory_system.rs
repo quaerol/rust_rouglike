@@ -79,6 +79,8 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, InBackpack>,
         WriteExpect<'a, ParticleBuilder>,
         ReadStorage<'a, Position>,
+        WriteStorage<'a, HungerClock>, // 写 mut
+        ReadStorage<'a, ProvidesFood>, // 读
     );
 
     #[allow(clippy::cognitive_complexity)]
@@ -102,6 +104,8 @@ impl<'a> System<'a> for ItemUseSystem {
             mut backpack,
             mut particle_builder,
             positions,
+            mut hunger_clocks,
+            provides_food,
         ) = data;
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
@@ -247,6 +251,24 @@ impl<'a> System<'a> for ItemUseSystem {
                 }
             }
 
+            // it is edible, eat it
+            let item_edible = provides_food.get(useitem.item);
+            match item_edible {
+                None => {}
+                Some(_) => {
+                    used_item = true;
+                    let target = targets[0];
+                    let hc = hunger_clocks.get_mut(target);
+                    if let Some(hc) = hc {
+                        hc.state = HungerState::WellFed;
+                        hc.duration = 20;
+                        gamelog.entries.push(format!(
+                            "You eat the {}.",
+                            names.get(useitem.item).unwrap().name
+                        ));
+                    }
+                }
+            }
             // if it inflicts(给予) 伤害，apply it to the target cell
             // This checks to see if we have an InflictsDamage component on the item - and if it does, applies the damage to everyone in the targeted cell.
             let item_damage = inflict_damage.get(useitem.item);

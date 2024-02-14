@@ -1,3 +1,5 @@
+use crate::{HungerClock, HungerState};
+
 use super::{
     gamelog::GameLog, particle_system::ParticleBuilder, CombatStats, DefenseBonus, Equipped,
     MeleePowerBonus, Name, Position, SufferDamage, WantsToMelee,
@@ -21,6 +23,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
         ReadStorage<'a, Equipped>,
         WriteExpect<'a, ParticleBuilder>,
         ReadStorage<'a, Position>,
+        ReadStorage<'a, HungerClock>,
     );
     fn run(&mut self, data: Self::SystemData) {
         // destruct data 结构 data
@@ -36,6 +39,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
             equipped,
             mut particle_builder,
             positions,
+            hunger_clock,
         ) = data;
 
         for (entity, wants_melee, name, stats) in
@@ -52,6 +56,15 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         offensive_bonus += power_bonus.power;
                     }
                 }
+
+                // give you a temporary + 1 to your power when you are fed
+                let hc = hunger_clock.get(entity);
+                if let Some(hc) = hc {
+                    if hc.state == HungerState::WellFed {
+                        offensive_bonus += 1;
+                    }
+                }
+
                 let target_stats = combat_stats.get(wants_melee.target).unwrap();
                 // Once we have determined that the defender is alive, we set defensive_bonus to 0.
                 if target_stats.hp > 0 {

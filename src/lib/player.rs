@@ -129,6 +129,16 @@ fn skip_turn(ecs: &mut World) -> RunState {
         }
     }
 
+    // we'll prevent you from wait-healing while hungry or starving (this also balances the healing system we added earlier)
+    let hunger_clocks = ecs.read_storage::<HungerClock>();
+    let hc = hunger_clocks.get(*player_entity);
+    if let Some(hc) = hc {
+        match hc.state {
+            HungerState::Hungry => can_heal = false,
+            HungerState::Starving => can_heal = false,
+            _ => {}
+        }
+    }
     // if no monster is present, it heals the player by 1 hp,
     if can_heal {
         let mut health_components = ecs.write_storage::<CombatStats>();

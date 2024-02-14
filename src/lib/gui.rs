@@ -1,4 +1,7 @@
-use crate::{Equipped, GameLog, InBackpack, Map, Name, Position, RunState, State, Viewshed};
+use crate::{
+    Equipped, GameLog, HungerClock, HungerState, InBackpack, Map, Name, Position, RunState, State,
+    Viewshed,
+};
 
 use super::{CombatStats, Player};
 use rltk::{Console, Point, Rltk, VirtualKeyCode, RGB};
@@ -21,8 +24,10 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
     // 得到有CombatStates 和 Player 组件的实体 得到玩家的生命值
     let combat_stats = ecs.read_storage::<CombatStats>();
     let players = ecs.read_storage::<Player>();
+    let hunger = ecs.read_storage::<HungerClock>();
+
     // 遍历这两个都有的实体
-    for (_player, stats) in (&players, &combat_stats).join() {
+    for (_player, stats, hc) in (&players, &combat_stats, &hunger).join() {
         let health = format!(" HP: {} / {} ", stats.hp, stats.max_hp);
         // bar 样式
         ctx.print_color(
@@ -43,6 +48,31 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
             RGB::named(rltk::RED),
             RGB::named(rltk::BLACK),
         );
+
+        match hc.state {
+            HungerState::WellFed => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::GREEN),
+                RGB::named(rltk::BLACK),
+                "Well Fed",
+            ),
+            HungerState::Normal => {}
+            HungerState::Hungry => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::ORANGE),
+                RGB::named(rltk::BLACK),
+                "Hungry",
+            ),
+            HungerState::Starving => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::RED),
+                RGB::named(rltk::BLACK),
+                "Starving",
+            ),
+        }
     }
     // 在 ui 中打印日志 在UI中显示日志
     let log = ecs.fetch::<GameLog>();

@@ -200,7 +200,25 @@ pub struct DefenseBonus {
 }
 
 // 粒子组件，位置，渲染，生命周期
-#[derive(Component, Serialize, Deserialize, Clone)]
+#[derive(Component, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub struct ParticleLifetime {
     pub lifetime_ms: f32, // 粒子存活的时间
 }
+
+// 饥饿时钟组件
+#[derive(Component, Serialize, Deserialize, Clone, PartialEq)]
+pub enum HungerState {
+    WellFed, // 营养好的
+    Normal,
+    Hungry,
+    Starving,
+}
+#[derive(Component, Serialize, Deserialize, Clone, PartialEq)]
+pub struct HungerClock {
+    pub state: HungerState,
+    pub duration: i32, // 多少间隔时间会少生命值
+}
+
+// 提供食物
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct ProvidesFood {}

@@ -681,7 +681,6 @@ it would be great to add similar effects to item use, in inventory_system.rs, ex
 
 
 
-
 贷款, 
 
 洗钱 现额 20万  一类卡
@@ -689,7 +688,32 @@ it would be great to add similar effects to item use, in inventory_system.rs, ex
 黄金洗钱
 
 
-## 3.4 hunger clock 饥饿时钟
+## 3.4 hunger clock, food 饥饿时钟 
+通过饥饿 来驱动玩家来行动, 玩家有饥饿的状态,挨饿时,玩家的攻击力和防御力都会下降,
+通过食物来补充生命值和治疗补充生命值不一样
+
+1 adding a hunger clock component, needs to be registered in main.rs and saveload_system.rs
+in spawners.rs, we will expend the player function to add a hunger clock to the player
+
+2 adding a hunger system
+new file **hunger_system.rs**, implement a hunger clock system
+
+add it to the system 
+
+3 displaying the status 显示状态
+nice to know your hunger status, modify draw_ui in gui.rs
+
+4 adding in food
+to keep player from straving after a few hundred rounds, introduce a new item Rations 口粮, need a new one to indicate that an item **ProvidesFood**,
+in spawner.rs, create a new function to make rations, also add it to the spawn table And to the spawn code,
+now you will encounter rations that you can pick up and drop, you can not, however eat them, we will add that to inventory_system.rs,
+now you can run around - find rations, and eat them to reset the hunger clock
+
+5 adding a bonus for bring well fed 吃得饱会有额外的奖励
+give you a temporary + 1 to your power when you are fed, sneakily making it harder to survive on lower levels as food less plentifu
+
+6 preventing healing when hunger or starving 饥饿 或者 挨饿时阻碍愈合
+in player.rs, we modify skip_turn
 
 ## 3.5 REX paint menu REX 绘制菜单
 

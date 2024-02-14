@@ -53,6 +53,10 @@ pub use saveload_system::*;
 pub mod random_table;
 pub use random_table::*;
 
+// 饥饿时钟
+pub mod hunger_system;
+pub use hunger_system::*;
+
 // 粒子
 pub mod particle_system;
 pub use particle_system::*;
@@ -130,6 +134,10 @@ impl State {
         // 移除装备系统
         let mut item_remove = ItemRemoveSystem {};
         item_remove.run_now(&self.ecs);
+
+        // 饥饿时钟系统
+        let mut hunger = hunger_system::HungerSystem {};
+        hunger.run_now(&self.ecs);
 
         // 粒子系统
         let mut particles = particle_system::ParticleSpawnSystem {};
