@@ -188,6 +188,7 @@ pub struct Equipped {
 pub struct WantsToRemoveItem {
     pub item: Entity,
 }
+
 // 装备给与战斗的加成
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct MeleePowerBonus {
@@ -196,4 +197,10 @@ pub struct MeleePowerBonus {
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct DefenseBonus {
     pub defense: i32,
+}
+
+// 粒子组件，位置，渲染，生命周期
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct ParticleLifetime {
+    pub lifetime_ms: f32, // 粒子存活的时间
 }

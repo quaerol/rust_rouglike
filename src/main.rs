@@ -67,6 +67,11 @@ fn main() -> rltk::BError {
     // 插入一个实体标记 作为资源
     gs.ecs.register::<SerializationHelper>();
 
+    // 粒子生命周期组件
+    gs.ecs.register::<ParticleLifetime>();
+    // 将ParticleBuilder 作为资源
+    gs.ecs.insert(particle_system::ParticleBuilder::new());
+
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     // ------------------create entity 创建实体 ----------------------------------------------------
     // 为等级 1 创建地图

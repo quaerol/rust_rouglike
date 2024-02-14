@@ -648,6 +648,46 @@ we will indicate a bloodstain by changing a tile background to dark red, not sho
 3 blood for the blood god, 为血神献血
 add blood to the scene,  we will mark a tile as bloody whenever someone takes damage in it, adjust the DamageSystem in damage_system.rs to set the bloodstain
 ## 3.3 particle effects 粒子效果
+there is no real visual effect for your actions,  you hit something, and it either goes away, or it does not, bloodstains give a good impression 印象
+of previously 之前 happened in location - but it would be nice to give some sort instant reaction 及时反馈 to your actions, these need to be fast, no - blocking your action,
+so you do not have to wait the animation to finish to your actions, and not too intrusive 干扰, 
+Particles are a good fit for this, so we will implement a simple ASCII/CP437 particle system 粒子系统
+
+1 particle component 粒子的成分
+add ParticleLifetime component. In components.rs
+
+2 group particle code together
+new file particle_system.rs
+the first thing to support is making particle vinsh after their lifetime
+function cull_dead_particles(), modify the render loop in main.rs 
+
+3 spawning particles via service
+extend particle_system.rs to offer a builder system: you obtain a **ParticleBulider** and add request to it, and then create your particles as a batch together, 
+通过请求**ParticleRequest** ，一次性的批次创建粒子，we will offer the particle system as a resource, so it is available anywhere,
+gs.ecs.insert(particle_system::ParticleBuilder::new());, 如何得到这个资源
+
+now, we will return particle_system.rs, and build an actual system to spawn particle,**struct ParticleSpawnSystem**
+
+4 actually spawning some particle for combat
+lets start by spawning a particle whenever someone attacks, add ParticleBuilder to the list of request resource for melee_combat_system.rs
+
+5 adding effects to item use
+it would be great to add similar effects to item use, in inventory_system.rs, expend the ItemUseSystem introduction to inlcude the ParticleBuilder
+
+#[allow(clippy::cognitive_complexity)]
+
+6 adding an indicator for missing a turn due to confusion, 添加因为昏迷而跳过这一轮的指示
+在怪物因为昏迷而条跳过这一轮时,再次显示重复特效, 表明这个怪物站在这里的原因,monster_ai_system.rs, modify the system header to request the apper 
+
+
+
+
+贷款, 
+
+洗钱 现额 20万  一类卡
+二维码 4000 800
+黄金洗钱
+
 
 ## 3.4 hunger clock 饥饿时钟
 

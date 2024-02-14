@@ -77,7 +77,11 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Equippable>,
         WriteStorage<'a, Equipped>,
         WriteStorage<'a, InBackpack>,
+        WriteExpect<'a, ParticleBuilder>,
+        ReadStorage<'a, Position>,
     );
+
+    #[allow(clippy::cognitive_complexity)]
     fn run(&mut self, data: Self::SystemData) {
         let (
             player_entity,
@@ -96,6 +100,8 @@ impl<'a> System<'a> for ItemUseSystem {
             equippable,
             mut equipped,
             mut backpack,
+            mut particle_builder,
+            positions,
         ) = data;
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
@@ -135,6 +141,15 @@ impl<'a> System<'a> for ItemUseSystem {
                                 for mob in map.tile_content[idx].iter() {
                                     targets.push(*mob);
                                 }
+                                // if an effect hits a whole area, it would be good to indicate waht the area is, in the targeting section of the system
+                                particle_builder.request(
+                                    tile_idx.x,
+                                    tile_idx.y,
+                                    rltk::RGB::named(rltk::ORANGE),
+                                    rltk::RGB::named(rltk::BLACK),
+                                    rltk::to_cp437('░'),
+                                    200.0,
+                                );
                             }
                         }
                     }
@@ -213,6 +228,19 @@ impl<'a> System<'a> for ItemUseSystem {
                                     healer.heal_amount
                                 ));
                                 used_item = true;
+                                // start by showing a heart when you drink a healing potion
+                                // 在喝下药水的实体显示一颗心
+                                let pos = positions.get(*target);
+                                if let Some(pos) = pos {
+                                    particle_builder.request(
+                                        pos.x,
+                                        pos.y,
+                                        rltk::RGB::named(rltk::GREEN),
+                                        rltk::RGB::named(rltk::BLACK),
+                                        rltk::to_cp437('♥'),
+                                        200.0,
+                                    );
+                                }
                             }
                         }
                     }
@@ -237,6 +265,17 @@ impl<'a> System<'a> for ItemUseSystem {
                                 "You use {} on {}, inflicting {} hp.",
                                 item_name.name, mob_name.name, damage.damage
                             ));
+                            let pos = positions.get(*mob);
+                            if let Some(pos) = pos {
+                                particle_builder.request(
+                                    pos.x,
+                                    pos.y,
+                                    rltk::RGB::named(rltk::RED),
+                                    rltk::RGB::named(rltk::BLACK),
+                                    rltk::to_cp437('‼'),
+                                    200.0,
+                                );
+                            }
                         }
 
                         used_item = true;
@@ -263,6 +302,18 @@ impl<'a> System<'a> for ItemUseSystem {
                                     item_name.name, mob_name.name
                                 ));
                             }
+
+                            let pos = positions.get(*mob);
+                            if let Some(pos) = pos {
+                                particle_builder.request(
+                                    pos.x,
+                                    pos.y,
+                                    rltk::RGB::named(rltk::MAGENTA),
+                                    rltk::RGB::named(rltk::BLACK),
+                                    rltk::to_cp437('?'),
+                                    200.0,
+                                );
+                            }
                         }
                     }
                 }
@@ -272,6 +323,16 @@ impl<'a> System<'a> for ItemUseSystem {
                 confused
                     .insert(mob.0, Confusion { turns: mob.1 })
                     .expect("Unable to insert status");
+            }
+            // If its a consumable, we delete it on use
+            if used_item {
+                let consumable = consumables.get(useitem.item);
+                match consumable {
+                    None => {}
+                    Some(_) => {
+                        entities.delete(useitem.item).expect("Delete failed");
+                    }
+                }
             }
         }
 

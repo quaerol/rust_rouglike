@@ -1,6 +1,7 @@
-use crate::{DefenseBonus, Equipped, MeleePowerBonus};
-
-use super::{CombatStats, GameLog, Name, SufferDamage, WantsToMelee};
+use super::{
+    gamelog::GameLog, particle_system::ParticleBuilder, CombatStats, DefenseBonus, Equipped,
+    MeleePowerBonus, Name, Position, SufferDamage, WantsToMelee,
+};
 use specs::prelude::*;
 
 // 该系统 来 处理近战
@@ -18,6 +19,8 @@ impl<'a> System<'a> for MeleeCombatSystem {
         ReadStorage<'a, MeleePowerBonus>,
         ReadStorage<'a, DefenseBonus>,
         ReadStorage<'a, Equipped>,
+        WriteExpect<'a, ParticleBuilder>,
+        ReadStorage<'a, Position>,
     );
     fn run(&mut self, data: Self::SystemData) {
         // destruct data 结构 data
@@ -28,10 +31,11 @@ impl<'a> System<'a> for MeleeCombatSystem {
             names,
             combat_stats,
             mut inflict_damage,
-            // We've added MeleePowerBonus, DefenseBonus and Equipped readers to the system.
             melee_power_bonuses,
             defense_bonuses,
             equipped,
+            mut particle_builder,
+            positions,
         ) = data;
 
         for (entity, wants_melee, name, stats) in
@@ -61,6 +65,18 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         if equipped_by.owner == wants_melee.target {
                             defensive_bonus += defense_bonus.defense;
                         }
+                    }
+                    let pos = positions.get(wants_melee.target);
+                    //
+                    if let Some(pos) = pos {
+                        particle_builder.request(
+                            pos.x,
+                            pos.y,
+                            rltk::RGB::named(rltk::ORANGE),
+                            rltk::RGB::named(rltk::BLACK),
+                            rltk::to_cp437('‼'),
+                            200.0,
+                        );
                     }
 
                     // When we calculate damage, we add the offense bonus to the power side - and add the defense bonus to the defense side.

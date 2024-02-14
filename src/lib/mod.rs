@@ -53,6 +53,9 @@ pub use saveload_system::*;
 pub mod random_table;
 pub use random_table::*;
 
+// 粒子
+pub mod particle_system;
+pub use particle_system::*;
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -127,6 +130,10 @@ impl State {
         // 移除装备系统
         let mut item_remove = ItemRemoveSystem {};
         item_remove.run_now(&self.ecs);
+
+        // 粒子系统
+        let mut particles = particle_system::ParticleSpawnSystem {};
+        particles.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -292,6 +299,9 @@ impl GameState for State {
 
         // 清楚屏幕 clearn
         ctx.cls();
+
+        // 每一帧渲染粒子
+        particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
         // 显示 菜单的时候不会 同时渲染GUI 和 地图
         match newrunstate {

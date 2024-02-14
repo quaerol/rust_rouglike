@@ -20,6 +20,7 @@ impl<'a> System<'a> for MonsterAI {
         WriteStorage<'a, WantsToMelee>,
         // 需要修改，所以是Write
         WriteStorage<'a, Confusion>,
+        WriteExpect<'a, ParticleBuilder>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -34,6 +35,7 @@ impl<'a> System<'a> for MonsterAI {
             mut position,
             mut wants_to_melee,
             mut confused,
+            mut particle_builder,
         ) = data;
         // monsterAI system 只有在 Mons特人Trun怪物游戏状态才可以运行
 
@@ -53,7 +55,16 @@ impl<'a> System<'a> for MonsterAI {
                 if i_anm_confused.turns < 1 {
                     confused.remove(entity);
                 }
-                can_act = true;
+                // 如果这一轮怪物被迷惑,显示迷惑特效,引子在哪里,
+                can_act = false;
+                particle_builder.request(
+                    pos.x,
+                    pos.y,
+                    rltk::RGB::named(rltk::MAGENTA),
+                    rltk::RGB::named(rltk::BLACK),
+                    rltk::to_cp437('?'),
+                    200.0,
+                );
             }
 
             if can_act {
