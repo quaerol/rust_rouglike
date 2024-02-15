@@ -115,6 +115,9 @@ fn main() -> rltk::BError {
     gs.ecs.insert(gamelog::GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });
+
+    //  insert the dungeon graphic into Specs as a resource so we can access our sprites anywhere
+    gs.ecs.insert(rex_assets::RexAssets::new());
     // ------------------------game mian loop------------------------
     rltk::main_loop(context, gs)
 }

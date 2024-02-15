@@ -60,6 +60,11 @@ pub use hunger_system::*;
 // 粒子
 pub mod particle_system;
 pub use particle_system::*;
+
+// REX Paint
+pub mod rex_assets;
+pub use rex_assets::*;
+
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -320,6 +325,7 @@ impl GameState for State {
         match newrunstate {
             // handle the mainmenu state in our large match, 处理 处于菜单的状态
             RunState::MainMenu { .. } => {}
+            RunState::GameOver { .. } => {}
             _ => {
                 // --------------------render ---------------------------------------------------
                 // 从world 中得到地图数据
@@ -518,11 +524,12 @@ impl GameState for State {
             RunState::SaveGame => {
                 saveload_system::save_game(&mut self.ecs);
                 newrunstate = RunState::MainMenu {
-                    menu_selection: gui::MainMenuSelection::Quit,
+                    menu_selection: gui::MainMenuSelection::LoadGame,
                 };
             }
             RunState::NextLevel => {
-                todo!()
+                self.goto_next_level();
+                newrunstate = RunState::PreRun;
             }
             // 游戏结束
             RunState::GameOver => {

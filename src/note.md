@@ -732,11 +732,21 @@ modify inventory_system.rs, add new Runstate -> MagicMapReveal, notice that inst
 
 lower the spawn priority for magic mapping scrolls 
 
-
-
-
-
 ## 3.6 REX paint menu REX 绘制菜单
+main meun
+
+1 REX Paint 格式的文件
+Codepage 437 image editing called REX Paint
+素材文件SmallDungeon_80x50.xp
+
+2 loading REX Assets 加载REX 资产
+new file rex_assets.rs to store our REX sprites
+
+define a struct RexAssets, 
+
+We're using rltk::embedded_resource! to include the file in our binary.将文件包含在二进制文件中
+将RexAssets 插入 ecs  作为资源
+open up gui.rs and find the main_meun function, add two line brfore we start printing menu content
 
 ## 3.7 simple traps 简单的陷阱
 

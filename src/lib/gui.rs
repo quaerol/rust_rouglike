@@ -1,6 +1,6 @@
 use crate::{
-    Equipped, GameLog, HungerClock, HungerState, InBackpack, Map, Name, Position, RunState, State,
-    Viewshed,
+    Equipped, GameLog, HungerClock, HungerState, InBackpack, Map, Name, Position, RexAssets,
+    RunState, State, Viewshed,
 };
 
 use super::{CombatStats, Player};
@@ -590,16 +590,44 @@ pub enum MainMenuResult {
 pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
     // 检查 游戏状态保存文件是否存在
     let save_exists = super::saveload_system::does_save_exist();
-    // 从 State 得到现在所处的运行状态，如果当前的状态是 MainMenu, 显示主菜单
     let runstate = gs.ecs.fetch::<RunState>();
+
+    // 渲染主菜单背景图片
+    let assets = gs.ecs.fetch::<RexAssets>();
+    ctx.render_xp_sprite(&assets.menu, 0, 0);
+
+    // 从 State 得到现在所处的运行状态，如果当前的状态是 MainMenu, 显示主菜单
+    // add a box for the menu and text.
+    ctx.draw_box_double(
+        24,
+        18,
+        31,
+        10,
+        RGB::named(rltk::WHEAT),
+        RGB::named(rltk::BLACK),
+    );
     ctx.print_color_centered(
-        15,
+        20,
         RGB::named(rltk::YELLOW),
         RGB::named(rltk::BLACK),
         "Rust Roguelike Tutorial",
     );
+    ctx.print_color_centered(
+        21,
+        RGB::named(rltk::CYAN),
+        RGB::named(rltk::BLACK),
+        "by Herbert Wolverson",
+    );
+    ctx.print_color_centered(
+        22,
+        RGB::named(rltk::GRAY),
+        RGB::named(rltk::BLACK),
+        "Use Up/Down Arrows and Enter",
+    );
 
-    //  selection初始化是哪个状态
+    // 固定菜单选项的间距
+    let mut y = 24;
+    //  selection 选中哪个选项
     if let RunState::MainMenu {
         menu_selection: selection,
     } = *runstate
@@ -607,14 +635,14 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
         // 选中和没有选中是不同的样式
         if selection == MainMenuSelection::NewGame {
             ctx.print_color_centered(
-                24,
+                y,
                 RGB::named(rltk::MAGENTA),
                 RGB::named(rltk::BLACK),
                 "Begin New Game",
             );
         } else {
             ctx.print_color_centered(
-                24,
+                y,
                 RGB::named(rltk::WHITE),
                 RGB::named(rltk::BLACK),
                 "Begin New Game",
@@ -624,14 +652,14 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
         if save_exists {
             if selection == MainMenuSelection::LoadGame {
                 ctx.print_color_centered(
-                    25,
+                    y + 1,
                     RGB::named(rltk::MAGENTA),
                     RGB::named(rltk::BLACK),
                     "Load Game",
                 );
             } else {
                 ctx.print_color_centered(
-                    25,
+                    y + 1,
                     RGB::named(rltk::WHITE),
                     RGB::named(rltk::BLACK),
                     "Load Game",
@@ -640,13 +668,13 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
         }
         if selection == MainMenuSelection::Quit {
             ctx.print_color_centered(
-                26,
+                y,
                 RGB::named(rltk::MAGENTA),
                 RGB::named(rltk::BLACK),
                 "Quit",
             );
         } else {
-            ctx.print_color_centered(26, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
+            ctx.print_color_centered(y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
         }
 
         // 按键
