@@ -222,3 +222,7 @@ pub struct HungerClock {
 // 提供食物
 #[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct ProvidesFood {}
+
+// magic mapping
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct MagicMapper {}

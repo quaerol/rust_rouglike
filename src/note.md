@@ -715,9 +715,30 @@ give you a temporary + 1 to your power when you are fed, sneakily making it hard
 6 preventing healing when hunger or starving 饥饿 或者 挨饿时阻碍愈合
 in player.rs, we modify skip_turn
 
-## 3.5 REX paint menu REX 绘制菜单
+## 3.5 magic mapping 魔法映射
+a really common item in rougelikes is the scroll of magic mapping, you read it, and the dungeon 地牢 is revealed 揭开,
 
-## 3.6 simple traps 简单的陷阱
+1 adding a magic map component,
+we need except for an indicator that an item is a scroll or any other item, we will add a component **MagicMapper** for it
+
+we will head over to spawners.rs and create a new function **magic_mapping_scroll**() for it, as well as adding it to the loot tables
+
+2 mapping the level - the simple version
+modify inventory_system.rs to detect if you just used a mapping scroll, and reveal the whole map
+
+3 making it pretty
+modify inventory_system.rs, add new Runstate -> MagicMapReveal, notice that instead of modifying the map, we are just changing the game state to mapping mode
+使用地图卷轴时改变游戏的状态，在main 中的PlayerTurn 也需要改变RunState 为 MagicMapReveal, 
+
+lower the spawn priority for magic mapping scrolls 
+
+
+
+
+
+## 3.6 REX paint menu REX 绘制菜单
+
+## 3.7 simple traps 简单的陷阱
 
 # Section 3 - Generating Map 生成地图
 

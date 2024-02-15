@@ -63,7 +63,7 @@ impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         ReadExpect<'a, Entity>,
         WriteExpect<'a, GameLog>,
-        ReadExpect<'a, Map>,
+        WriteExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, WantsToUseItem>,
         ReadStorage<'a, Name>,
@@ -81,6 +81,8 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Position>,
         WriteStorage<'a, HungerClock>, // 写 mut
         ReadStorage<'a, ProvidesFood>, // 读
+        ReadStorage<'a, MagicMapper>,
+        WriteExpect<'a, RunState>,
     );
 
     #[allow(clippy::cognitive_complexity)]
@@ -88,7 +90,7 @@ impl<'a> System<'a> for ItemUseSystem {
         let (
             player_entity,
             mut gamelog,
-            map,
+            mut map,
             entities,
             mut wants_use,
             names,
@@ -106,6 +108,8 @@ impl<'a> System<'a> for ItemUseSystem {
             positions,
             mut hunger_clocks,
             provides_food,
+            magic_mapper,
+            mut runstate,
         ) = data;
         // 迭代所有的 WantsToDrinkPotion 的意图对象，
         for (entity, useitem) in (&entities, &wants_use).join() {
@@ -210,7 +214,19 @@ impl<'a> System<'a> for ItemUseSystem {
                     }
                 }
             }
-
+            // if its a magic mapper...
+            let is_mapper = magic_mapper.get(useitem.item);
+            match is_mapper {
+                Some(_) => {
+                    used_item = true;
+                    used_item = true;
+                    gamelog
+                        .entries
+                        .push("The map is revealed to you!".to_string());
+                    *runstate = RunState::MagicMapReveal { row: 0 };
+                }
+                None => {}
+            }
             // if it heals, apply the healing
             let item_heals = healing.get(useitem.item);
             match item_heals {

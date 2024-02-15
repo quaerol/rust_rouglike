@@ -91,6 +91,11 @@ pub enum RunState {
 
     // 游戏结束
     GameOver,
+
+    // 揭开全部地图的状态
+    MagicMapReveal {
+        row: i32,
+    },
 }
 
 pub struct State {
@@ -363,7 +368,12 @@ impl GameState for State {
             RunState::PlayerTurn => {
                 self.run_systems();
                 self.ecs.maintain();
-                newrunstate = RunState::MonsterTurn;
+                match *self.ecs.fetch::<RunState>() {
+                    RunState::MagicMapReveal { .. } => {
+                        newrunstate = RunState::MagicMapReveal { row: 0 }
+                    }
+                    _ => newrunstate = RunState::MonsterTurn,
+                }
             }
             RunState::MonsterTurn => {
                 self.run_systems();
@@ -525,6 +535,19 @@ impl GameState for State {
                             menu_selection: gui::MainMenuSelection::NewGame,
                         };
                     }
+                }
+            }
+            RunState::MagicMapReveal { row } => {
+                let mut map = self.ecs.fetch_mut::<Map>();
+                for x in 0..MAPWIDTH {
+                    let idx = map.xy_idx(x as i32, row);
+                    map.revealed_tiles[idx] = true;
+                }
+                if row as usize == MAPHEIGHT - 1 {
+                    newrunstate = RunState::MonsterTurn;
+                } else {
+                    // 将地图一行行的揭开
+                    newrunstate = RunState::MagicMapReveal { row: row + 1 }
                 }
             }
         }

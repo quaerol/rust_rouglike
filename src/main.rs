@@ -77,6 +77,9 @@ fn main() -> rltk::BError {
     gs.ecs.register::<HungerClock>();
     gs.ecs.register::<ProvidesFood>();
 
+    // magic mapping
+    gs.ecs.register::<MagicMapper>();
+
     // ------------------create entity 创建实体 ----------------------------------------------------
     // 为等级 1 创建地图
     let map = Map::new_map_rooms_and_corridors(1);
