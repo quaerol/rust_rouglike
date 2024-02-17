@@ -87,12 +87,14 @@ fn main() -> rltk::BError {
     gs.ecs.register::<SingleActivation>();
 
     // ------------------create entity 创建实体 ----------------------------------------------------
-    // 为等级 1 创建地图
-    let map = Map::new_map_rooms_and_corridors(1);
-
+    // level 1 创建地图
+    let mut builder = map_builders::random_builder(1);
+    builder.build_map();
+    let player_start = builder.get_starting_position();
+    let map = builder.get_map();
     // 使用 spawner 创建玩家 怪物 物品
-    // 玩家的位置在第一个房间的中心位置
-    let (player_x, player_y) = map.rooms[0].center();
+    // 玩家的位置在第一个房间的中心位置y
+    let (player_x, player_y) = (player_start.x, player_start.y);
     let player_entity = spawner::player(&mut gs.ecs, player_x, player_y);
 
     // ----------------------房间 怪物 物品 生成器代码------------------------
@@ -100,9 +102,7 @@ fn main() -> rltk::BError {
     // 随机数 生成器 作为一种 资源 随机创建
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
 
-    for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(&mut gs.ecs, room, 1);
-    }
+    builder.spawn_entities(&mut gs.ecs);
 
     // --------------add resource in world  ,shared data the whole ecs can use --------------------------------
     // 将map 插到world 中

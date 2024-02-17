@@ -808,5 +808,133 @@ since visibility_system already handles revealing tiles, why not make it potenti
 why a 1/24 chance to spot traps? like a lot of things in game design, sometimes you just have to play with it until it feel right 
 
 # Section 3 - Generating Map 生成地图
+Section 3 is all about map building, and will cover many of the available algorithms for procedurally building interesting maps.
+
+## 3.1 refactor map building
+world of procedural generation leaves so many more possibilities, over the next few chapters, we will start building a few
+different map types
+
+1 refactoring the builder - defining an interface trait
+什么时候需要定义一个接口, 一个抽象, 有许多不同地图类型, 所以可以将类型抽象为接口
+
+but what if we want to have lots of styles? This is the perfect time to create a proper builder system!
+
+to betteri organize our code, we will make a module, a **directory**, with a file in it called mod.rs, and that directory is now a module,
+modules are exposed through mod and pub mod, and provide a way to keep parts of your code together, the mod.rs file provides an interface 
+that is, a list of waht is provided by the module, and how to interact with it, other files in the module can do whatever they want, safely 
+isolated from the rest of the code,
+create directory called **map_builders**, in that directory, we will create an empty file called **mod.rs**, we are trying to define an interface,
+so we will with a skeleton
+
+you are saying that any other type can implement the trait, and can then be treated as a variable of that type
+
+
+Open up map.rs, and add a **new function** map 的构造器- called, appropriately enough,We'll need this new function for other map generators,地图生成器
+
+将在 map_builders 目录中创建一个新文件。将其称为 **simple_map.rs**, 它将是我们放置现有地图生成系统的地方
+
+back in map_builders/mod.rs we add a public function **build_random_map**. For now, it just calls the builder in SimpleMapBuilder: 地图生成器调用地图自己的构造函数,
+
+2 fleshing out the simple map builder
+moving functionality out of map.rs into our SimpleMapBuilder, add anther file to map_builders commom.rs, his will hold functions that used to be part of the map, and are now commonly used when building.
+
+These are **free functions**- that is, they are functions available from anywhere, **not tied to a type**. The **pub fn** means they are public within the module - unless we add pub use to the module itself, they aren't passed out of the module to the main program. This helps keeps code organized.
+
+现在我们有了这些助手，我们可以开始移植地图构建器本身了。在 simple_map.rs 中，我们首先充实一下 build 函数
+
+new function, **rooms_and_corridors**, this is built as a method attached to the SimpleMapBuilder structure.它不是特征的一部分，所以我们不能在那里定义它 - 但我们希望将它与其他构建器分开，这些构建器可能有自己的功能, 代码本身应该看起来非常熟悉：它与 map.rs 中的生成器相同，但将 map 作为变量而不是在函数内部生成。
+
+如果您现在 cargo run ，您会注意到：游戏完全一样！这很好：我们已经成功地将功能从 Map 重构为 map_builders 。
+
+3 placing the player 放置玩家
+建地图时指示玩家要去哪里。让我们扩展 map_builders/mod.rs 中的接口以返回一个Position
+
+our map building strategy now determines the player's starting point on a level, not the map itself. 玩家的初始位置有地图构建器决定
+
+4  cleaning up room spawning 整理房间内物品的生成功能
+在某些地图设计中不会有房间 room 的概念，因此我们还希望将生成 spawn 设为地图构建器的功能。我们将在 map_builders/mod.rs 中的界面中添加一个通用生成器：**trait MapBuilder**
+
+进入 main.rs 并查找每次循环调用的 spawn_room ，并将其替换为对 map_builders::spawn 的调用
+
+5 maintaining builder state 维护构建器的状态
+构建器无法知道第二次调用构建器（生成事物）时应该使用什么。这是因为我们的函数是无状态的——我们实际上并没有创建一个构建器并给它一种记住任何东西的方法。由于我们想要支持各种各样的构建者，因此我们应该纠正这一点。
+
+This introduces a new Rust concept: dynamic dispatch  动态调度 利用接口代替实现接口的类型
+基本思想是，您有一个指定接口的“基础对象”，并且多个对象实现该接口的功能。然后，您可以在运行时（**程序运行时，而不是编译时**）将实现接口的任何对象放入接口键入的变量中 - 当您从接口调用方法时，实现从实际类型。这很好，因为您的底层程序不必了解实际的实现 - 只需知道如何与**接口对话**。
+
+dynamic dispatch have actually two costs
+a.
+由于您事先不知道对象是什么类型，因此必须通过指针分配它。 Rust 通过提供 Box 系统（稍后会详细介绍）使这变得简单，但这是有代价的：而不是仅仅跳到一个容易定义的内存块（你的 CPU/内存通常可以计算出）提前轻松地取出并确保缓存已准备好）代码必须跟随指针 - 然后运行它在指针找到的内容run what it finds at the end of the pointer。这就是为什么一些 C++ 程序员将 -> （取消引用运算符）称为“缓存未命中运算符”。只需通过boxed，您的代码就会稍微变慢。
+
+b.
+由于多种类型可以实现方法，因此计算机需要知道要运行哪一种。它通过 vtable 来完成此操作 - 即方法实现的“虚拟表”。因此，每次调用都必须检查表，找出要运行的方法，然后从那里运行。这又是一次缓存未命中，让 CPU 有更多时间来弄清楚该怎么做。
+
+在这种情况下，我们只是生成地图 - 并对构建器进行很少的调用。这使得减速是可以接受的，因为它非常小并且不经常运行。如果可以避免的话，您不会想在主循环中执行此操作！
+
+so implementations, first changing our trait to be public, and have the methods accept an &mut self which means this method is a member of the trait,并且应该接收对 self 的访问权限- 调用时附加的对象
+ 
+place our free function calls with a factory function 工厂函数替换自由函数调用,  it creates a MapBuilder and returns it, 返回 Box<dyn MapBuilder>, Box 是封装在指针中的类型，其大小在编译时可能未知。dyn 是一个标志，表示“这应该使用动态调度”；代码在没有它的情况下也可以工作（它将被推断），但最好标记您在这里正在做一些复杂/昂贵的事情,
+
+在 main.rs 中，我们再次必须更改对地图构建器的所有三个调用。我们现在需要使用以下模式：
+a.
+Obtain a boxed MapBuilder object, from the factory.
+从工厂获取一个装箱的 MapBuilder 对象。
+b.
+Call build_map as a method (使用对象.方法) - that is, a function attached to the object.
+将 build_map 作为方法调用 - 即附加到对象的函数。
+c.
+Call spawn_entities also as a method.
+也将 spawn_entities 作为方法调用。
+
+modify **goto_next_level**
+
+It's not very different, but now we're keeping the builder object around - so subsequent calls to the builder will apply to the same implementation (sometimes called "concrete object" - the object that actually physically exists).
+
+If we were to add 5 more map builders, the code in main.rs wouldn't care! We can add them to the factory, and the rest of the program is blissfully unaware of the workings of the map builder. This is a very good example of how dynamic dispatch can be useful: y**ou have a clearly defined interface, and the rest of the program doesn't need to understand the inner workings.**
+
+工厂设计模式,
+
+6 Adding a constructor to SimpleMapBuilder
+now SimpleMapBuilder as an empty object, 
+
+如果需要跟踪一些数据怎么办？如果我们需要它，让我们向它添加一个简单的构造函数并使用它而不是空白对象。在 simple_map.rs 中，修改 SimpleMapBuilder  struct, add new function
+In mod.rs, change the random_map_builder function to use it, This hasn't gained us anything, but is a bit cleaner.
+
+回忆, 地图的构造器, 地图, 工厂模式,  生产不同类型的构造器, 
+7 cleaning up the trait - simple, obvious steps and single return types
+lets extend the trait a bit to obtain the player is position in one function, 在另一个函数中获取地图，并分别构建/生成。使用小函数往往会使代码更易于阅读，这本身就是一个有价值的目标。在 mod.rs 中
+
+there is a few things to note here
+build_map no longer returns anything at all. We're using it as a function to build map state.
+spawn_entities no longer asks for a Map parameter. Since all map builders have to implement a map in order to make sense, we're going to assume that the map builder has one.
+get_map returns a map. Again, we're assuming that the builder implementation keeps one.
+get_starting_position also assumes that the builder will keep one around.
+
+SimpleMapBuilder now needs to be modified, start by modifying the struct to include the required variables. 这是地图构建器的状态 - 由于我们正在执行动态面向对象的代码，因此状态仍然附加到对象
+
+Next, we'll implement the **getter functions**. These are very simple: they simply return the variables from the structure's state(就是这个结构体有哪些变量)
+
+also simplifies build_map and spawn_entities, 直接使用SimpleMapBuilder的method
+
+modify rooms_and_corridors to work with this interface, 使用 self.map 来引用它自己的地图副本，并将玩家位置存储在 self.starting_position 中。
+
+8 So why do maps still have rooms?
+房间实际上在游戏本身中并没有多大作用：它们是我们构建地图的方式的产物。很可能后来的地图构建者实际上不会关心房间，至少不会在“这是一个矩形，我们称之为房间”的意义上。让我们尝试将该抽象移出地图以及生成器。out of the map, and also out of the spawner.
+
+first step, in map.rs we remove the rooms structure completely from Map :
+
+9 wrap up
+
+
+## 3.2 map huilding test harness
+
+## 3.3 BSP room dungeons
+
+
+
+
+
+
+
 
 # Section 4 - Making A Game
