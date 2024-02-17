@@ -810,7 +810,7 @@ why a 1/24 chance to spot traps? like a lot of things in game design, sometimes 
 # Section 3 - Generating Map 生成地图
 Section 3 is all about map building, and will cover many of the available algorithms for procedurally building interesting maps.
 
-## 3.1 refactor map building
+## 4.1 refactor map building
 world of procedural generation leaves so many more possibilities, over the next few chapters, we will start building a few
 different map types
 
@@ -923,12 +923,9 @@ modify rooms_and_corridors to work with this interface, 使用 self.map 来引�
 
 first step, in map.rs we remove the rooms structure completely from Map :
 
-9 wrap up
+## 4.2 map huilding test harness 地图构建测试工具
 
-
-## 3.2 map huilding test harness
-
-## 3.3 BSP room dungeons
+## 4.3 BSP room dungeons
 
 
 
