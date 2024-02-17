@@ -65,6 +65,9 @@ pub use particle_system::*;
 pub mod rex_assets;
 pub use rex_assets::*;
 
+// 陷阱触发系统
+pub mod trigger_system;
+pub use trigger_system::*;
 // ------------------------World state section------------------------
 // turn-base game,回合制游戏，game state
 //Copy 将其标记为“复制”类型 - 它可以安全地复制到内存中（意味着它没有会被搞乱的指针）。 Clone 悄悄地为其添加了 .clone() 功能，允许您以这种方式进行内存复制。
@@ -121,6 +124,9 @@ impl State {
         let mut mapindex = MapIndexingSystem {};
         mapindex.run_now(&self.ecs);
 
+        // 陷阱触发系统
+        let mut triggers = trigger_system::TriggerSystem {};
+        triggers.run_now(&self.ecs);
         // 战斗系统
         let mut melee = MeleeCombatSystem {};
         melee.run_now(&self.ecs);
@@ -335,16 +341,19 @@ impl GameState for State {
                     // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
                     let positions = self.ecs.read_storage::<Position>();
                     let renderables = self.ecs.read_storage::<Renderable>();
-
+                    let hidden = self.ecs.read_storage::<Hidden>();
                     // 拿到地图
                     let map = self.ecs.fetch::<Map>();
 
                     // draw entities 根据渲染顺序 绘制 player monster item 等 实体
-                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    // !&hidden 渲染不带有Hidden隐藏组件的实体
+                    let mut data = (&positions, &renderables, !&hidden)
+                        .join()
+                        .collect::<Vec<_>>();
                     // 根据 render_order 进行 排序
                     data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
 
-                    for (pos, render) in data.iter() {
+                    for (pos, render, _hidden) in data.iter() {
                         let idx = map.xy_idx(pos.x, pos.y);
                         // 怪物占用的 tile 是否可见，
                         if map.visible_tiles[idx] {

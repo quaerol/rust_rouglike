@@ -80,6 +80,12 @@ fn main() -> rltk::BError {
     // magic mapping
     gs.ecs.register::<MagicMapper>();
 
+    // trap
+    gs.ecs.register::<Hidden>();
+    gs.ecs.register::<EntryTrigger>();
+    gs.ecs.register::<EntityMoved>();
+    gs.ecs.register::<SingleActivation>();
+
     // ------------------create entity 创建实体 ----------------------------------------------------
     // 为等级 1 创建地图
     let map = Map::new_map_rooms_and_corridors(1);

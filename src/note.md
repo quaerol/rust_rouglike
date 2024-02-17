@@ -749,6 +749,63 @@ We're using rltk::embedded_resource! to include the file in our binary.将文件
 open up gui.rs and find the main_meun function, add two line brfore we start printing menu content
 
 ## 3.7 simple traps 简单的陷阱
+1 what is a trap?
+traps can be logically divided into three sections:
+an appearance 
+a tigger
+a effect, 
+
+2 rendering a basic bear trap
+use ^ for a trap, we have all the components required to render a basic object, make a new funciotn **brae_trap** in spawners.rs
+now, occasionally you will run into a red ^ - and it will be labeled "Bear Trap" on mouse - over
+
+3 but you do not always spot the trap
+make traps hidden by default, and come up with a way to sometimes locate traps when you are near them
+like most things in ECS driven world, analyzing the text gives a great clue as to waht components you need
+new components Hidden, register it in main.rs and saveload_system.rs
+
+modify the object render to not show things that are hidden, how to exclude 排除 a component from a join
+let mut data = (&positions, &renderables, !&hidden).join().collect::<Vec<_>>();
+entities must not have the Hidden component if we are to render them.
+
+exclude them from tool-tips, in gui.rs, amend 修改 the draw_tooltip function 
+
+4 adding entry triggers
+a trap should be trigger when an entity walks onto them,
+in components.rs, we will create an **EntryTrigger**
+
+give bear traps a trigger in spawn.rs
+
+还需要玩家在进入陷阱可以被陷阱的触发器识别，添加一个新的组件，EntityMoved 来指示实体本回合已经移动
+
+scour 搜索 the codebase to add an EntityMoved component every time an entity moves,
+in player.rs, handle player movement in the try_move_palye function, at the top, we will gain write access 写入权限 to the relevant components store 相关组件存储
+
+monster 也具有移动的功能，so in monster_ai_system.rs, we will inster EntityMoveed after monster moves
+
+lastly, we need a system to make triggers actully do something, new file 
+
+系统运行得先后顺序，陷阱触发系统需要放在怪物AI系统之后
+
+5 traps that hurt 伤害的陷阱
+traps can be sprinkled 散布 around the level，and trigger when you enter their taget tile, we actually have a decent number of component types to describe the effect,
+in spawner.rs, we will extend the bear trap to include some damage, add InflictsDamage component
+also extend the trigger_system to apply the damage
+
+6 bear traps only snape once
+some traps really only fire once, that seems like a useful property to model for our trigger system,
+add new component SingleActivation 
+
+modify the trigger_system to apply it, remove the entities after looping through them, to avoid 
+confusing our iterators
+
+7 spotting traps 发现陷阱
+we will implement a chance to spot traps, at some point in the future, this might be tied to an attribute or skill - but for now, we will go with a dice roll 掷骰子
+
+since visibility_system already handles revealing tiles, why not make it potentially reveal hidden things?
+系统的数据中包含随机数来模拟骰子 和 Hidden　组件存储器
+
+why a 1/24 chance to spot traps? like a lot of things in game design, sometimes you just have to play with it until it feel right 
 
 # Section 3 - Generating Map 生成地图
 

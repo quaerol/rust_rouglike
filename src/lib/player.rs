@@ -16,6 +16,9 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     // 攻击意图组件的存储器
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
 
+    // 实体本回合移动后，为这个实体添加 EntityMoved
+    let mut entity_moved = ecs.write_storage::<EntityMoved>();
+
     // 得到所有的实体
     let entities = ecs.entities();
 
@@ -54,6 +57,11 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if !map.blocked[destination_idx] {
             pos.x = min(79, max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
+
+            // 玩家移动后，为其添加 EntityMoved 表示玩家这个回合已经移动
+            entity_moved
+                .insert(entity, EntityMoved {})
+                .expect("Unable to insert marker");
 
             // 玩家移动，看到的东西已经改变，viewshed 的 dirty 标志改变
             viewshed.dirty = true;

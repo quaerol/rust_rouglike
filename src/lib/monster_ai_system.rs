@@ -21,6 +21,7 @@ impl<'a> System<'a> for MonsterAI {
         // 需要修改，所以是Write
         WriteStorage<'a, Confusion>,
         WriteExpect<'a, ParticleBuilder>,
+        WriteStorage<'a, EntityMoved>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -36,6 +37,7 @@ impl<'a> System<'a> for MonsterAI {
             mut wants_to_melee,
             mut confused,
             mut particle_builder,
+            mut entity_moved,
         ) = data;
         // monsterAI system 只有在 Mons特人Trun怪物游戏状态才可以运行
 
@@ -99,6 +101,11 @@ impl<'a> System<'a> for MonsterAI {
 
                         pos.x = path.steps[1] as i32 % map.width; // steps[1] 是玩家的位置
                         pos.y = path.steps[1] as i32 / map.width;
+
+                        // 怪物移动后添加 EntityMoved 组件，表示怪物本回合已经移动
+                        entity_moved
+                            .insert(entity, EntityMoved {})
+                            .expect("Unable to insert marker");
 
                         idx = map.xy_idx(pos.x, pos.y);
                         map.blocked[idx] = true;

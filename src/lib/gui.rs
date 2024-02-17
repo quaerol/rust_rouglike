@@ -1,6 +1,6 @@
 use crate::{
-    Equipped, GameLog, HungerClock, HungerState, InBackpack, Map, Name, Position, RexAssets,
-    RunState, State, Viewshed,
+    Equipped, GameLog, Hidden, HungerClock, HungerState, InBackpack, Map, Name, Position,
+    RexAssets, RunState, State, Viewshed,
 };
 
 use super::{CombatStats, Player};
@@ -111,6 +111,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
     let map = ecs.fetch::<Map>();
     let names = ecs.read_storage::<Name>();
     let positions = ecs.read_storage::<Position>();
+    let hidden = ecs.read_storage::<Hidden>();
 
     let mouse_pos = ctx.mouse_pos();
     if mouse_pos.0 >= map.width || mouse_pos.1 >= map.height {
@@ -120,7 +121,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
     let mut tooltip: Vec<String> = Vec::new();
 
     // 有name 和 position 的实体都可以 显示 提示
-    for (name, position) in (&names, &positions).join() {
+    for (name, position, _hidden) in (&names, &positions, !&hidden).join() {
         // 将实体的 position 坐标 变为 索引 idx
         let idx = map.xy_idx(position.x, position.y);
         // 如果实体的位置和鼠标的位置相同，说明鼠标点击了实体，并且实体在mao 上是可见的

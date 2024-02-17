@@ -226,3 +226,18 @@ pub struct ProvidesFood {}
 // magic mapping
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct MagicMapper {}
+
+// trap
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Hidden {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntryTrigger {}
+
+// 指示本回合玩家已经移动
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntityMoved {}
+
+// 只会触发一次的陷阱
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct SingleActivation {}
