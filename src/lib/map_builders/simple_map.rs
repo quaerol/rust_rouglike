@@ -18,6 +18,7 @@ pub struct SimpleMapBuilder {
     starting_position: Position,
     depth: i32,
     rooms: Vec<Rect>,
+    history: Vec<Map>
 }
 impl SimpleMapBuilder {
     pub fn new(new_depth: i32) -> SimpleMapBuilder {
@@ -97,6 +98,19 @@ impl MapBuilder for SimpleMapBuilder {
     fn spawn_entities(&mut self, ecs: &mut World) {
         for room in self.rooms.iter().skip(1) {
             spawner::spawn_room(ecs, room, self.depth);
+        }
+    }
+    fn get_snapshot_history(&self) -> Vec<Map> {
+        self.history.clone()
+    }
+    fn take_snapshot(&mut self) {
+        if SHOW_MAPGEN_VISUALIZER {
+            let mut snapshot = self.map.clone();
+            for v in snapshot.revealed_tiles.iter_mut() {
+                // 
+                *v = true;
+            }
+            self.history.push(snapshot);
         }
     }
 }

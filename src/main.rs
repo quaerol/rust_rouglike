@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 use tutorial::*; // use tutorial lib
+const SHOW_MAPGEN_VISUALIZER : bool = true;
 fn main() -> rltk::BError {
     // use builder
     use rltk::RltkBuilder;

@@ -924,6 +924,93 @@ modify rooms_and_corridors to work with this interface, 使用 self.map 来引�
 first step, in map.rs we remove the rooms structure completely from Map :
 
 ## 4.2 map huilding test harness 地图构建测试工具
+当我们深入生成新的、有趣的地图时，提供一种方法来查看算法正在做什么将会很有帮助, this chapter will build a test harness to accomplish this, and extend the SimplmapBuilder to support it,
+
+1 cleaning up map creation, do not repeat yourself
+in main.rs, have the same code three times, 程序启动时会插入地图，改变游戏级别，和完成游戏时也会插入一张地图，后面两次是更新地图
+
+start by changing the first one to insert placeholder values than the actual values we intend to use, the World has the slots for the data - it just is not all that useful yet, 
+我们没有构建地图，而是将占位符放入 World 资源中，还需要一个函数来进行实际构建和更新资源。该功能与我们当前更新地图的其他两个地方相同！可以将它们放入一个函数中。因此在 State 的实现中，添加函数 fn generate_world_map(&mut self, new_depth : i32) 
+
+now, we can simplify 在main.rs 中 our first 创建地图逻辑
+用函数 generate_world_map 简化 goto_next_level and game_over_cleanup 地图更新的部分
+
+2 making a generator 制作生成器
+将两种范式结合起来非常困难，一个是一直在运行，另一个是分阶段运行
+- The graphical "tick" nature of RLTK (and the underlying GUI environment) encourages you to do everything fast, in one fell swoop.
+- Actually visualizing progress 可视化过程，加载地图的进度条 while you generate a map encourages you to run in lots of phases 多个阶段 as a "state machine", yielding map results along the way.
+
+协程 coroutines 
+synchronously 同步的，按顺序
+you can write code in a function that runs synchronously (in order) and "yields" values as the computation continues
+
+不适用协程，而是使用一条更传统的路线，地图在生成时可以拍摄“snapshot 快照”，并且可以在可视化工具中逐帧播放大量快照。这不像协程那么好，但它可以工作并且稳定。这些都是令人向往的特质！
+
+快照在软件开发中具有多种含义，但通常涉及到数据的拷贝、状态的记录或某一时刻的信息。
+
+可视化的代码生成是可选的，在 main.rs 的顶部，添加一个常量 const SHOW_MAPGEN_VISUALIZER : bool = true; ，表示是否展示可视化地图
+
+rust makes reay-only constants pretty easy, and the compiler optimize them out completely since the value is known head of time,
+默认显示地图加载进度，
+
+with that in place, add snapshot support to our map builder interface, extend map_builder/mod.rs,and fn get_snapshot_history(&self) -> Vec<Map>; and fn take_snapshot(&mut self); 前者将用于向生成器询问其地图框 map frames 的历史记录；后者告诉 generators 生成器支持拍摄快照（并让他们自行决定如何执行）。
+
+one major difference between Rust and C++ , rust traits do not support adding variables to the trait signature, 不支持在trait 中添加变量
+
+inside simple_map.rs, we need to implement these methods for our SimpleMapBuilder, adding supporting variabls  history:Vec<Map> to our struct
+ SimpleMapBulder, a vector resizable array of map structures. the idea is that we will keep adding copies fo the map into it for each "frame"
+ of map generation
+
+trait implementations 实现trait MapBuilder, 
+get_snapshot_history,return a copy of the history vector to the caller. 
+
+take_snapshot,检查是否正在使用快照功能（如果没有，就没有必要浪费内存！）。如果是，获取当前地图的副本，迭代每个 revealed_tiles 单元格并将其设置为 true （因此地图渲染将显示所有内容，包括无法访问的墙壁），然后添加将其添加到历史记录列表中。
+
+我们可以在地图生成期间的任何时候调用 self.take_snapshot() ，它会作为 frame 添加到地图生成器中。在 simple_map.rs 中，我们在添加房间或走廊后添加了几个调用
+
+3 rendering the visualizer 渲染可视化工具，地图的进度条
+
+visualizing map development is another game state, add MapGeneration to RunState enumeration in main.rs
+
+Visualization actually requires a few variables, but I ran into a problem, 其中一个变量确实应该是我们在可视化后(显示地图进度条)过渡到的下一个状态。
+我们可能会从三个来源（新游戏、游戏结束、下一关）之一构建新地图 - 并且它们在生成后的下一个RunState 是不同的。不幸的是，你不能将第二个 RunState 放入第一个 - Rust 会给你循环错误（cycle errors），并且它不会编译。您可以使用 Box<RunState> - 但这不适用于从 Copy 派生的 RunState ！
+
+我为此奋斗了一段时间，最后决定添加到 State 中，
+We've added:
+mapgen_next_state - which is where the game should go next.
+
+mapgen_history - a copy of the map history frames to play.
+
+mapgen_index - how far through the history we are during playback.
+
+mapgen_timer - used for frame timing during playback.
+
+we modified State, also have modify our creation of the State object
+
+We've made the next state the same as the starting state we have been using: so the game will render map creation and then go to the menu. We can change our initial state to MapGeneration,gs.ecs.insert(RunState::MapGeneration{} );
+
+we need to implement the render match RunState:MapGeneration , in our tick function, 初始化 newrunstate, 绘制地图，
+
+draw_map 过去不使用 map - 它会从 ECS 中提取它！在 map.rs 中， draw_map 的开头更改为：pub fn draw_map(map : &Map, ctx : &mut Rltk); 会传入一个Map, this is tiny change that allowed us to render whatever Map struct we need,
+
+we need to actually give the visualizer some data to render. We adjust generate_world_map to reset the various mapgen_ variables, clear the history, and retrieve 检索 the snapshot history once it has run.
+
+现在cargo run 这个项目，地图被逐渐的构建出来，依次的绘制地图上的每个房间
+
+
+
+
+
+哪些地方可以被AI代替，工程活动，规划，项目的进度，项目经理，可以用的资源，计划，人员的管理，
+脑力活动被AI取代，体力被机器人取代，行业，生意，人们都不去，开一个农家乐，杀鸡的每个月都可以赚两万，人辅助机器
+撒个慌，一段时间内，性情巨变，家里出了什么问题，急需用钱，那里可以赚快钱，把自己装的越惨越好，卖惨，
+
+
+
+
+
+
+
 
 ## 4.3 BSP room dungeons
 
