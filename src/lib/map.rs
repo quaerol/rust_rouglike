@@ -210,9 +210,8 @@ fn wall_glyph(map: &Map, x: i32, y: i32) -> rltk::FontCharType {
 }
 
 // retrieve the the map and the player's viewshed ,it only draw tiles present in the viewshed
-pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
-    // write_storage 从ecs 中拿到注册的组件，设置为可写的存储
-    let map = ecs.fetch::<Map>();
+// 直接拿到地图进行绘制
+pub fn draw_map(map : &Map, ctx : &mut Rltk) {
 
     let mut y = 0;
     let mut x = 0;

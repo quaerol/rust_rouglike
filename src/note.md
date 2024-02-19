@@ -969,7 +969,6 @@ take_snapshot,检查是否正在使用快照功能（如果没有，就没有必
 我们可以在地图生成期间的任何时候调用 self.take_snapshot() ，它会作为 frame 添加到地图生成器中。在 simple_map.rs 中，我们在添加房间或走廊后添加了几个调用
 
 3 rendering the visualizer 渲染可视化工具，地图的进度条
-
 visualizing map development is another game state, add MapGeneration to RunState enumeration in main.rs
 
 Visualization actually requires a few variables, but I ran into a problem, 其中一个变量确实应该是我们在可视化后(显示地图进度条)过渡到的下一个状态。
@@ -991,9 +990,11 @@ We've made the next state the same as the starting state we have been using: so 
 
 we need to implement the render match RunState:MapGeneration , in our tick function, 初始化 newrunstate, 绘制地图，
 
-draw_map 过去不使用 map - 它会从 ECS 中提取它！在 map.rs 中， draw_map 的开头更改为：pub fn draw_map(map : &Map, ctx : &mut Rltk); 会传入一个Map, this is tiny change that allowed us to render whatever Map struct we need,
+draw_map 过去不使用 map - 它会从 ECS 中提取它！在 map.rs 中， draw_map 的开头更改为：pub fn draw_map(map : &Map, ctx : &mut Rltk); 会传入一个Map, this is tiny change that allowed us to render whatever Map struct we need, 使得我们可以渲染我们需要的任何 Map 结构
 
-we need to actually give the visualizer some data to render. We adjust generate_world_map to reset the various mapgen_ variables, clear the history, and retrieve 检索 the snapshot history once it has run.
+we need to actually give the visualizer some data to render（为可视化工具提供一些要渲染的数据）. We adjust **generate_world_map** to reset the various **mapgen_** variables, clear the history, and retrieve 检索 the snapshot history once it has run.
+
+
 
 现在cargo run 这个项目，地图被逐渐的构建出来，依次的绘制地图上的每个房间
 
@@ -1005,6 +1006,9 @@ we need to actually give the visualizer some data to render. We adjust generate_
 脑力活动被AI取代，体力被机器人取代，行业，生意，人们都不去，开一个农家乐，杀鸡的每个月都可以赚两万，人辅助机器
 撒个慌，一段时间内，性情巨变，家里出了什么问题，急需用钱，那里可以赚快钱，把自己装的越惨越好，卖惨，
 
+爸，得了前列腺，去西藏，陪同，
+
+学车，到哪里去都很方便
 
 
 

@@ -18,12 +18,16 @@ fn main() -> rltk::BError {
     // 地图显示复古的感觉
     context.with_post_scanlines(true);
 
-    // create world,because entity will add in world,so world is mutable
+    // 游戏状态，包含游戏世界和游戏的运行状态
     let mut gs = State {
         ecs: World::new(),
-        runstate: RunState::PreRun,
+        mapgen_next_state : Some(RunState::MainMenu{ menu_selection: gui::MainMenuSelection::NewGame }),
+        mapgen_index : 0,
+        mapgen_history: Vec::new(),
+        mapgen_timer: 0.0
     };
 
+    // 向ecs 中的 world 注册组件
     // -------------register component--------------------------------
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
@@ -116,7 +120,7 @@ fn main() -> rltk::BError {
     gs.ecs.insert(player_entity);
 
     // 将运行状态作为资源插入进世界中
-    gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(RunState::MapGeneration{} );
 
     // 插入日志 作为资源
     gs.ecs.insert(gamelog::GameLog {

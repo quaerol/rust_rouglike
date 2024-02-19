@@ -112,7 +112,14 @@ pub enum RunState {
 
 pub struct State {
     pub ecs: World,
-    pub runstate: RunState,
+    // 地图创建完成后的运行状态，which is where the game should go next.
+    mapgen_next_state : Option<RunState>,
+    // a copy of the map history frames to play.
+    mapgen_history : Vec<Map>,
+    // how far through the history we are during playback.
+    mapgen_index : usize,
+    // used for frame timing during playback.
+    mapgen_timer : f32
 }
 
 // 是否显示可视化地图加载
@@ -295,6 +302,23 @@ impl State {
         // Build a new map and place the player
         self.generate_world_map(1);                                          
     }
+
+    // 生成世界地图, 重置各种mapgen_ 变量，清除历史记录，
+    fn generate_world_map(&mut self,new_depth:i32){
+        self.mapgen_index = 0;
+        self.mapgen_timer = .0;
+        self.mapgen_history.clear();
+
+        let builder = map_builders::random_builder(new_depth);
+        builder.build_map();
+        self.mapgen_history = builder.get_snapshot_history();
+        let player_start;
+        {
+            let mut worldmap_resource = self.ecs.write_resource::<Map>();
+            *worldmap_resource = builder.get_map();
+            player_start = builder.get_starting_position();
+        }
+    }
 }
 
 impl GameState for State {
@@ -315,7 +339,7 @@ impl GameState for State {
         // 每一帧渲染粒子
         particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
-        // 显示 菜单的时候不会 同时渲染GUI 和 地图
+        // 游戏开始界面和游戏结束界面不会渲染游戏界面
         match newrunstate {
             // handle the mainmenu state in our large match, 处理 处于菜单的状态
             RunState::MainMenu { .. } => {}
@@ -356,6 +380,7 @@ impl GameState for State {
             }
         }
 
+        // 游戏进行时的各种运行状态的匹配
         match newrunstate {
             RunState::PreRun => {
                 // run system dispatch system
@@ -552,6 +577,28 @@ impl GameState for State {
                 } else {
                     // 将地图一行行的揭开
                     newrunstate = RunState::MagicMapReveal { row: row + 1 }
+                }
+            }
+
+            RunState::MapGeneration{
+                // 如何没有开启地图的可视化加载，直接转到游戏的下一个运行状态
+                if !SHOW_MAPGEN_VISUALIZER =>{
+                    newrunstate = self.mapgen_next_state.unwrap();
+                }
+
+                // 清空屏幕
+                ctx.cls();
+                draw_map(&self.ecs.fetch::<Map>(), ctx);
+
+                // 否则，逐渐加载出地图
+                // 帧持续时间
+                self.mapgen_timer += ctx.frame_time_ms;
+                if self.mapgen_timer > 300.0 {
+                    self.mapgen_timer = 0.0;
+                    self.mapgen_index += 1;
+                    if self.mapgen_index >= self.mapgen_history.len() {
+                        newrunstate = self.mapgen_next_state.unwrap();
+                    }
                 }
             }
         }
