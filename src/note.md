@@ -923,7 +923,7 @@ modify rooms_and_corridors to work with this interface, 使用 self.map 来引�
 
 first step, in map.rs we remove the rooms structure completely from Map :
 
-## 4.2 map huilding test harness 地图构建测试工具
+## 4.2 map building test harness 地图构建测试工具
 当我们深入生成新的、有趣的地图时，提供一种方法来查看算法正在做什么将会很有帮助, this chapter will build a test harness to accomplish this, and extend the SimplmapBuilder to support it,
 
 1 cleaning up map creation, do not repeat yourself
@@ -998,29 +998,80 @@ we need to actually give the visualizer some data to render（为可视化工具
 
 现在cargo run 这个项目，地图被逐渐的构建出来，依次的绘制地图上的每个房间
 
-
-
-
-
 哪些地方可以被AI代替，工程活动，规划，项目的进度，项目经理，可以用的资源，计划，人员的管理，
 脑力活动被AI取代，体力被机器人取代，行业，生意，人们都不去，开一个农家乐，杀鸡的每个月都可以赚两万，人辅助机器
 撒个慌，一段时间内，性情巨变，家里出了什么问题，急需用钱，那里可以赚快钱，把自己装的越惨越好，卖惨，
 
-爸，得了前列腺，去西藏，陪同，
-
 学车，到哪里去都很方便
-
-
-
-
-
-
 
 ## 4.3 BSP room dungeons
 
+一种新的构建地图的方法，与上一章的simple_map 作为对照
+
+a popular mathod of map generation uses "binary space partition(二元空间分割)" to sub-divide your map into rectangles of varying（不同的） size
+
+this chapter will use the visualizer from the previous chapter to walk you through using this technique
+
+### 1 implementing a new map - subdivided BSP, the boilerplate (样本文件)
+new file in map_builders - **bsp_dungeon.rs**, start by making the basic **BspDungeonBuilder**
+
+This is basically the same as the one from SimpleMapBuilder - and we've kept the rooms vector, because this method uses a concept of rooms as well.
+ We've added a rects vector: the algorithm uses this a lot, so it's helpful to make it available throughout the implementation.
+
+implement the MapBuilder trait to BspDungeonBuilder, this is also pretty much same as SimpleMapBuilder, except build_map,
+also need to implement a constructor for BspDungeonBuilder, basically the same as SimpleMapBuilder
+
+open map_builders/mod.rs and change the random_builder fnction to always return our new type BspDungeonBuilder
+
+### 2 building the map creator
+onto making map,
+
+start with room generation, inside impl BspMapBuilder, add new function **fn buid(&mut self);**
+清除构建器存储的地图的矩形
+函数 sub_subrects 将矩形分为几个象限，get_random_rect 获得随机的矩形，get_random_sub_rect，得到随机图块作为房间
+
+函数 add_subrects 是 BSP（二进制空间分区）方法的核心：它采用一个矩形，并将宽度和高度分成两半。然后，它创建四个新矩形，每个矩形对应原始矩形的每个象限。这些将添加到 rects 列表中。
+```
+###############        ###############
+#             #        #  1   +   2  #
+#             #        #      +      #
+#      0      #   ->   #+++++++++++++#
+#             #        #   3  +   4  #
+#             #        #      +      #
+###############        ###############
+
+```
+
+fn get_random_sub_rect(&self, rect : Rect, rng : &mut RandomNumberGenerator) -> Rect; 将传入的矩形按照随机的长宽重新分割一个矩形作为房间
+
+BSP 算法：
+
+BSP 会提供 好的 房间分布，并保证不会重叠，
+
+现在运行游戏，首先出现在一个没有房间的实体地图中，然后逐渐现实出一个个生成的房间
+
+### 3 adding in corridors 添加走廊
+we sort the rooms by left coordinate 依照左坐标排序房间，it helps make connected rooms line up
+
+inline function 内联函数，lambda 函数
+
+add some corridors 添加走廊，
+iterates the rooms list, ignoring the last one, 
+fetches the current room, and the next one in the list and calculates a random location(start_x/start_y and end_x/end_y) within each room
+then calls **draw_corridor** function with these coordinates(开始结束坐标),Draw corridor adds a line from the start to the end, using only north/south or east/west (it can give 90-degree bends).
+also take a snapshot
+
+### 4 do not forget the stairs
+place the exit in the last room, 
+
+
+### randomizing the dungeon per level
+每个级别level随机使用不同构建地图的算法，构建不同类型的地图
 
 
 
+
+sora 生成的视频是对于其生成的一个世界的一个镜头展示，对于这个世界的某个物体，不同的镜头是一致的，sora 是基于对现实世界的理解的基础上创造的这个模拟世界
 
 
 
