@@ -1074,7 +1074,7 @@ place the exit in the last room,
 sora 生成的视频是对于其生成的一个世界的一个镜头展示，对于这个世界的某个物体，不同的镜头是一致的，sora 是基于对现实世界的理解的基础上创造的这个模拟世界
 
 
-## BSP　interior Design BSP 室内设计
+## 4.4 BSP　interior Design BSP 室内设计
 in the last chapter, we used BSP to build a dungeon with rooms, 
 in the example, we are going to modify BSP to desgin an interior dungeon(内部地下城) - completely inside a rectangular structure(for example, a castle) and with wasted space other than interior walls
 
@@ -1090,6 +1090,49 @@ new file map_builders/bsp_interior.rs, 并放入与上一章中使用的相同�
 幸运的是，与上一章完全相同的代码也可以在这里工作。
 
 unchanged draw_corridor function
+
+
+## 4.5 cellular automata maps 元胞自动机地图
+you need a break form rectangular rooms, you might want to a nice, orgainc looking cavern,
+
+### 1 scaffolding 脚手架
+再次，我们将从上一个教程中获取一堆脚手架代码并将其重新用于新的生成器。创建一个新文件 map_builders/cellular_automata.rs 并将以下内容放入其中
+
+### 2 putting together the basic map
+第一步是让地图完全混乱，大约 55% 的方块是实心的。现在Floor Wall 是随机分布的。
+cellular automata 元胞自动机的地图就是消噪音，它的工作原理是迭代每个单元，计算邻居的数量，并根据密度将墙壁变成地板或墙壁。
+
+### 3 picking a starting ppint
+we do not have a list of rooms to query, so picking a starting point for the player is a little more difficult than it has been in previous chapters.
+
+相反，我们将从中间开始并向左移动，直到遇到一些开放空间。我们将从中间开始并向左移动，直到遇到一些开放空间。
+
+### 4 placing an exit - and culling unreachable areas
+出口距离玩家很远。我们也不希望保留玩家绝对无法到达的区域。
+寻找出口的过程和寻找孤儿的过程非常相似。
+RLTK 为您实现了非常快速的 Dijkstra 版本，因此您不必与算法作斗争
+
+### 5 populating our cave: freeing the spawn system from rooms
+将怪物聚集在一起更有意义，有一些“死亡空间”，这样你就可以喘口气（并恢复一些生命值）。
+
+现在除了玩家，几乎所有的物品都是通过spawn_room 生成的，只可以在房间中生成，不能再走廊等其他地方生成
+spawn_room 函数中执行了多项的操作，这不是一个好的设计
+
+最终目标是保持 spawn_room interface 可用 - 这样我们仍然可以使用它，但也提供更详细的选项。
+
+我们要做的第一件事是分离出实际的生成代码形成函数fn spawn_entity(ecs: &mut World, spawn : &(&usize, &String));
+
+调用理论函数的简化版本替换 spawn_room， 该函数保持与先前调用相同的接口/签名 - 因此我们的旧代码仍然可以工作。它并没有实际生成任何东西，而是构建了房间中所有瓷砖的向量（检查它们是否是地板 - 我们以前没有做过的事情；墙壁中的怪物不再可能！）。
+
+新函数，pub fn spawn_region(ecs: &mut World, area : &[usize], map_depth: i32); 指定在那个区域生成物品
+
+### 6 grouped placement in our map - enter the voronoi
+voronoi diagrams 沃罗诺伊图是一种非常有用的数学知识, 给定一组点，它会构建每个点周围区域的图表（这可能是随机的，也可能意味着什么；这就是数学的美妙之处，这取决于你！） - 没有空白区域。我们想对我们的地图做类似的事情：将地图细分为随机区域并在这些区域内生成。幸运的是，RLTK 提供了一种噪声(noise 噪声代表随机)来帮助解决这个问题：蜂窝噪声 cellular noise.
+什么是噪音。它指的是随机数据，蜂窝噪声将点随机放置在网格上，然后在它们周围绘制 Voronoi 图。
+
+让我们首先添加一个结构  noise_areas : HashMap<i32, Vec<usize>> 来将生成的区域存储到我们的 CellularAutomataBuilder 结构中
+我们有一个以区域 ID 号为键的 HashMap （其他语言的字典）。该区域由 vector 个图块 ID 号组成。理想情况下，我们会生成 20-30 个不同的区域，所有区域都有可以在其中生成实体的空间。
+
 
 
 

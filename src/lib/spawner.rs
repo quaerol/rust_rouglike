@@ -32,61 +32,80 @@ fn room_table(map_depth: i32) -> RandomTable {
 
 #[allow(clippy::map_entry)]
 pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
-    let spawn_table = room_table(map_depth);
-    let mut spawn_points: HashMap<usize, String> = HashMap::new();
-
-    // scope to keep the borrow checker happy
+    let mut possible_targets:Vec<usize> = Vec::new();
     {
-        // 随机的数量
-        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        // 生成的随机个数
-        let num_spawns = rng.roll_dice(1, MAX_MONSTERS + 3) + (map_depth - 1) - 3;
-
-        for _i in 0..num_spawns {
-            let mut added = false;
-            // 尝试寻找 spawn point 的次数，20 次都没找到，则放弃
-            let mut tries = 0;
-            while !added && tries < 20 {
-                // 房间中的随机的位置
-                let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
-                let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * MAPWIDTH) + x;
-                // 不能在一个位置重复spawn,这个位置是否被占用
-                if !spawn_points.contains_key(&idx) {
-                    // 随机位置 和 随机对象
-                    spawn_points.insert(idx, spawn_table.roll(&mut rng));
-                    added = true;
-                } else {
-                    tries += 1;
+        // Borrow scope - to keep access to the map separated
+        let map = ecs.fetch::<Map>();
+        for y in room.y1 + 1 .. room.y2 {
+            for x in room.x1 + 1 .. room.x2 {
+                let idx = map.xy_idx(x, y);
+                if map.tiles[idx] == TileType::Floor {
+                    possible_targets.push(idx);
                 }
             }
         }
     }
+    spawn_region(ecs, &possible_targets, map_depth);
+}
 
-    // Actually spawn the monsters and item
-    for spawn in spawn_points.iter() {
-        let x = (*spawn.0 % MAPWIDTH) as i32;
-        let y = (*spawn.0 / MAPWIDTH) as i32;
+/// Spawns a named entity (name in tuple.1) at the location in (tuple.0)
+fn spawn_entity(ecs:&mut World,spawn:&(&usize,&String)){
+    let x = (*spawn.0 % MAPWIDTH) as i32;
+    let y = (*spawn.0 / MAPWIDTH) as i32;
 
-        match spawn.1.as_ref() {
-            "Goblin" => goblin(ecs, x, y),
-            "Orc" => orc(ecs, x, y),
-            "Health Potion" => health_potion(ecs, x, y),
-            "Fireball Scroll" => fireball_scroll(ecs, x, y),
-            "Confusion Scroll" => confusion_scroll(ecs, x, y),
-            "Magic Missile Scroll" => magic_missile_scroll(ecs, x, y),
-            "Dagger" => dagger(ecs, x, y),
-            "Shield" => shield(ecs, x, y),
-            "Longsword" => longsword(ecs, x, y),
-            "Tower Shield" => tower_shield(ecs, x, y),
-            "Rations" => rations(ecs, x, y),
-            "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
-            "Bear Trap" => bear_trap(ecs, x, y),
-            _ => {}
-        }
+    match spawn.1.as_ref() {
+        "Goblin" => goblin(ecs, x, y),
+        "Orc" => orc(ecs, x, y),
+        "Health Potion" => health_potion(ecs, x, y),
+        "Fireball Scroll" => fireball_scroll(ecs, x, y),
+        "Confusion Scroll" => confusion_scroll(ecs, x, y),
+        "Magic Missile Scroll" => magic_missile_scroll(ecs, x, y),
+        "Dagger" => dagger(ecs, x, y),
+        "Shield" => shield(ecs, x, y),
+        "Longsword" => longsword(ecs, x, y),
+        "Tower Shield" => tower_shield(ecs, x, y),
+        "Rations" => rations(ecs, x, y),
+        "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
+        "Bear Trap" => bear_trap(ecs, x, y),
+        _ => {}
     }
 }
 
+// 指定生成的区域
+pub fn spawn_region(ecs:&mut World,area:&[usize],map_depth:i32){
+    // 获得当前地图深度的生成表
+    let spawn_table = room_table(map_depth);
+    // 设置一个名为 spawn_points 的 HashMap ，列出我们决定生成的所有数据对（地图索引和名称标签）
+    let mut spawn_points :HashMap<usize, String> = HashMap::new();
+    // 创建一个新的 Vector 区域，从传入的切片中复制。 （切片是数组或向量的“视图”）。我们正在制作一个新区域，
+    // 因此我们不会修改父区域列表。调用者可能想将该数据用于其他用途，最好避免在未经询问的情况下更改人们的数据
+    let mut areas:Vec<usize> = Vec::from(area);
+    // Scope to keep the borrow checker happy
+    {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        // 生成实体的数量限定在 0 - 该区域有的图块的数量之间
+        let num_spawns = i32::min(areas.len() as i32, rng.roll_dice(1, MAX_MONSTERS + 3) + (map_depth - 1) - 3);
+        if num_spawns == 0 { return; }
+
+        for _i in 0..num_spawns {
+            // 获得该区域一个随机的图块
+            let array_index = if areas.len() == 0 {
+                // 如果只有一个就是它
+                0usize
+            }else{
+                (rng.roll_dice(1, areas.len() as i32)-1) as usize
+            };
+            let map_index = areas[array_index];
+            // 随机的位置创建随机的实体
+            spawn_points.insert(map_index, spawn_table.roll(&mut rng));
+            areas.remove(array_index);
+        }
+         // Actually spawn the monsters
+        for spawn in spawn_points.iter() {
+            spawn_entity(ecs, &spawn);
+        }
+    }
+}
 // -----------------------------player-----------------------------------
 
 /// spawn the player and return his/her entity object
