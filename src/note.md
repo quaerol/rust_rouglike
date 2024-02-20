@@ -1074,6 +1074,23 @@ place the exit in the last room,
 sora 生成的视频是对于其生成的一个世界的一个镜头展示，对于这个世界的某个物体，不同的镜头是一致的，sora 是基于对现实世界的理解的基础上创造的这个模拟世界
 
 
+## BSP　interior Design BSP 室内设计
+in the last chapter, we used BSP to build a dungeon with rooms, 
+in the example, we are going to modify BSP to desgin an interior dungeon(内部地下城) - completely inside a rectangular structure(for example, a castle) and with wasted space other than interior walls
+
+这种类型的地牢可以代表一个内部空间，可能是一艘太空船、一座城堡，甚至是一个家。
+
+### 1 scaffolding 脚手架
+new file map_builders/bsp_interior.rs, 并放入与上一章中使用的相同的初始样板
+
+### 2 subdividing into rooms 细分房间
+我们组合了一个与上一章中的函数非常相似的 build 函数
+
+### 3 adding some doorawys 添加一些门道
+幸运的是，与上一章完全相同的代码也可以在这里工作。
+
+unchanged draw_corridor function
+
 
 
 # Section 4 - Making A Game
