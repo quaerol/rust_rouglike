@@ -1175,7 +1175,117 @@ as usual, we start with scaffolding from the previous map tutorials, in map_buil
 
 Building some preset constructors: open_area, open_halls, winding_passages
 
-## 4.7
+## 4.7 Maze/Labyrinth Generation
+地牢爬行游戏的支柱是老式迷宫，通常以牛头怪 米诺陶 为特色。 Dungeon Crawl: Stone Soup 有一个名副其实的牛头怪迷宫，Tome 4 有沙虫迷宫，One Knight 有一个精灵树篱迷宫。这些关卡可能会让玩家感到厌烦，因此应谨慎使用：很多玩家并不真正喜欢探索寻找出口的单调乏味
+
+### 1 scaffolding 脚手架
+使用前一章的代码作为脚手架, 
+定义
+pub struct MazeBuilder {
+    map : Map,
+    starting_position : Position,
+    depth: i32,
+    history: Vec<Map>,
+    noise_areas : HashMap<i32, Vec<usize>>
+}
+
+impl MapBuilder for MazeBuilder{
+     fn get_map(&self) -> Map{}
+
+}
+impl MazeBuilder{
+
+}
+### 2 actually building a maze
+Cyucelen's mazeGenerator, 这是一个有趣的算法，因为像许多迷宫算法一样，它假设墙壁是图块网格的一部分，而不是具有单独的墙壁实体。这不适用于我们正在使用的图块地图类型，因此我们以实际地图分辨率的一半生成网格，并根据网格中的 adjacency 墙邻接信息生成墙。
+
+该算法最初是 C++ 代码，到处都是指针。算法中最基本的结构： Cell, 单元格是地图上的图块
+
+定义四个常量：TOP、RIGHT、BOTTOM 和 LEFT，并将它们分配给数字 0..3 。每当算法想要引用一个方向时，我们都会使用它们
+
+Rust 数组（静态的，你不能像 vector 那样调整它们的大小
+
+大多数时候我们只使用矢量，因为我们喜欢动态调整大小；在这种情况下，元素的数量是提前知道的，因此使用较低开销的类型是有意义的。
+
+```
+struct Cell {
+    row: i32,
+    column: i32,
+    walls: [bool; 4],
+    visited: bool,
+}
+// 这是一个简单的构造函数：它创建一个在每个方向都有墙壁的单元格，并且之前没有访问过
+impl Cell {
+    fn new(row: i32, column: i32) -> Cell {
+        Cell{
+            row,
+            column,
+            walls: [true, true, true, true],
+            visited: false
+        }
+    }
+    ...
+```
+
+在我们的迷宫算法中， Cell 是 Grid 的一部分。
+
+定义 Grid
+struct Grid<'a> {
+    width: i32,
+    height: i32,
+    cells: Vec<Cell>,
+    backtrace: Vec<usize>,
+    current: usize,
+    rng : &'a mut RandomNumberGenerator
+}
+
+<'a> 是生命周期说明符。我们必须指定一个，以便 Rust 的借用检查器可以确保在我们删除 RandomNumberGenerator 之前 Grid 不会过期
+
+A依赖于B，保证A不会被随意丢弃，所有需要在B上加生命周期
+
+
+算法使用 backtrace 进行递归回溯，以确保每个单元格都已被处理。它只是单元索引（indices）的 vector - cells 向量的索引。
+
+算法使用 current 来判断我们当前正在使用哪个 Cell 。
+
+ we want to use the random number generator built in the build function, so we store a reference to it here. Because obtaining a random number changes the content of the variable, we have to store a mutable reference. The really ugly &'a mut indicates that it is a reference, with the lifetime 'a (defined above) and is mutable/changeable.
+
+ Grid 实现了相当多的方法。首先，构造函数 new
+
+impl Grid{
+    // 迭代网格的行和列，将新的Cell push 进 Grid cells 中，并按其位置进行编号
+    fn new();
+    // 计算 cell 在网格中的（因为网格是一个向量） 索引, 与map 中的 xy_idx 函数类似
+    fn calculate_index(&self, row: i32, column: i32) -> i32; 
+    // 提供current cell 可使用的出口，找到改单元格可以达到的相邻单元格有哪些
+    fn get_available_neighbors(&self) -> Vec<usize> ;
+
+    // 找到改单元格是否可以去到下一个Cell 的 索引，该函数中使用 get_available_neighbors 函数
+    fn find_next_cell(&mut self) ->Option<usize>;
+
+    //  actual algorithm! 实际的迷宫生成算法
+    fn generate_maze(&mut self, generator:&mut MazeBuilder);
+}
+
+实际迷宫算法：
+loop 开始
+    1 将 current 单元格中 visited 的值设置为 true
+    2 将当前单元格添加到 backtrace(递归) 列表的开头
+    3 调用 find_next_cell 并将得到的 exit 索引设置在变量 next 中。如果是第一次运行，从起始单元格获得随机方向。否则，4 从正在访问的 current 单元格中得到一个exit
+    5 如果 next 有一个值
+        1 将单元格拆分为两个可变引用。我们需要对同一个切片进行两个可变引用，Rust 通常不允许这样做，但我们可以将切片拆分为两个不重叠的部分。这是一个常见的用例，Rust 提供了一个安全的函数 split_at_mut 来做到这一点。
+        2 从第一部分获取对索引较低的单元格 lower index 的可变引用，从第二部分的开头 获取对第二个索引的单元格的可变引用
+        3 
+
+
+
+开会 一个人专门记录，把一些东西敲定，然后参考其他的文档
+
+
+
+
+
+
 ## 4.8
 ## 4.9
 
