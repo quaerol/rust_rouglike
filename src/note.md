@@ -1224,7 +1224,6 @@ impl Cell {
             visited: false
         }
     }
-    ...
 ```
 
 在我们的迷宫算法中， Cell 是 Grid 的一部分。
@@ -1275,7 +1274,29 @@ loop 开始
     5 如果 next 有一个值
         1 将单元格拆分为两个可变引用。我们需要对同一个切片进行两个可变引用，Rust 通常不允许这样做，但我们可以将切片拆分为两个不重叠的部分。这是一个常见的用例，Rust 提供了一个安全的函数 split_at_mut 来做到这一点。
         2 从第一部分获取对索引较低的单元格 lower index 的可变引用，从第二部分的开头 获取对第二个索引的单元格的可变引用
-        3 
+        3 我们在 cell1 单元格上调用 remove_walls ，引用 cell2 单元格。
+    6 如果 next 没有值（它等于 None ）
+        1 如果 backtrace 不为空，我们将 current 设置为 backtrace 列表中的第一个值。
+        2 如果 backtrace 为空，我们就完成了 - 所以我们 break 退出循环。
+    7 最后，我们调用 copy_to_map - 将迷宫复制到地图，并为迭代地图生成渲染器拍摄快照。
+
+前几次迭代将获得一个未访问过的邻居，在迷宫中开辟一条清晰的路径。一路上的每一步，我们访问过的单元格都会添加到 backtrace 中。这实际上是一次醉酒穿越迷宫，但确保我们无法返回牢房。
+当我们到达没有邻居的点时（我们已经到达迷宫的尽头），算法会将 current 更改为 backtrace 列表中的第一个条目。然后它会从那里随机行走，填充更多的单元格。
+如果该点无法到达任何地方，它将返回 backtrace 列表。
+重复此操作，直到访问了所有单元格，这意味着 backtrace 和 neighbors 都是空的。我们完成了！
+
+
+### ３ Speeding up the generator
+我们在每次迭代中都通过快照浪费了大量时间 - 我们正在构建一个巨大的快照映射列表
+
+修改 generate_maze 函数来计算迭代次数，并且仅每 10 次记录一次,进行一次快照
+
+
+### 4 Finding the exit 寻找出口
+当前的算法将从 Cell (1,1) 开始 - 对应于地图位置 (2,2)。所以在 build 中，我们可以轻松指定一个起点：
+self.starting_position = Position{ x: 2, y : 2 };
+let start_idx = self.map.xy_idx(self.starting_position.x, self.starting_position.y);
+self.take_snapshot();
 
 
 

@@ -107,23 +107,23 @@ pub enum RunState {
         row: i32,
     },
     // 生成地图的状态
-    MapGeneration
+    MapGeneration,
 }
 
 pub struct State {
     pub ecs: World,
     // 地图创建完成后的运行状态，which is where the game should go next.
-    mapgen_next_state : Option<RunState>,
+    pub mapgen_next_state: Option<RunState>,
     // a copy of the map history frames to play.
-    mapgen_history : Vec<Map>,
+    pub mapgen_history: Vec<Map>,
     // how far through the history we are during playback.
-    mapgen_index : usize,
+    pub mapgen_index: usize,
     // used for frame timing during playback.
-    mapgen_timer : f32
+    pub mapgen_timer: f32,
 }
 
 // 是否显示可视化地图加载
-const SHOW_MAPGEN_VISUALIZER : bool = true;
+const SHOW_MAPGEN_VISUALIZER: bool = true;
 
 impl State {
     // 系统的调度
@@ -175,40 +175,6 @@ impl State {
         particles.run_now(&self.ecs);
 
         self.ecs.maintain();
-    }
-
-    // 创建地图
-    fn generate_world_map(&mut self,new_depth:i32){
-        let mut builder = map_builders::random_builder(new_depth);
-        builder.build_map();
-        let player_start;
-        {
-            let mut worldmap_resource = self.ecs.write_resource::<Map>();
-            *worldmap_resource = builder.get_map();
-            player_start = builder.get_starting_position();
-        }
-
-        // Spawn bad guys
-        builder.spawn_entities(&mut self.ecs);
-
-        // Place the player and update resources
-        let (player_x, player_y) = (player_start.x, player_start.y);
-        let mut player_position = self.ecs.write_resource::<Point>();
-        *player_position = Point::new(player_x, player_y);
-        let mut position_components = self.ecs.write_storage::<Position>();
-        let player_entity = self.ecs.fetch::<Entity>();
-        let player_pos_comp = position_components.get_mut(*player_entity);
-        if let Some(player_pos_comp) = player_pos_comp {
-            player_pos_comp.x = player_x;
-            player_pos_comp.y = player_y;
-        }
-    
-        // Mark the player's visibility as dirty
-        let mut viewshed_components = self.ecs.write_storage::<Viewshed>();
-        let vs = viewshed_components.get_mut(*player_entity);
-        if let Some(vs) = vs {
-            vs.dirty = true;
-        } 
     }
 }
 
@@ -271,6 +237,7 @@ impl State {
         self.generate_world_map(current_depth + 1);
 
         // Notify the player and give them some health
+        let player_entity = self.ecs.fetch::<Entity>();
         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
         gamelog
             .entries
@@ -300,16 +267,15 @@ impl State {
         }
 
         // Build a new map and place the player
-        self.generate_world_map(1);                                          
+        self.generate_world_map(1);
     }
 
     // 生成世界地图, 重置各种mapgen_ 变量，清除历史记录，
-    fn generate_world_map(&mut self,new_depth:i32){
+    fn generate_world_map(&mut self, new_depth: i32) {
         self.mapgen_index = 0;
-        self.mapgen_timer = .0;
+        self.mapgen_timer = 0.0;
         self.mapgen_history.clear();
-
-        let builder = map_builders::random_builder(new_depth);
+        let mut builder = map_builders::random_builder(new_depth);
         builder.build_map();
         self.mapgen_history = builder.get_snapshot_history();
         let player_start;
@@ -317,6 +283,28 @@ impl State {
             let mut worldmap_resource = self.ecs.write_resource::<Map>();
             *worldmap_resource = builder.get_map();
             player_start = builder.get_starting_position();
+        }
+
+        // Spawn bad guys
+        builder.spawn_entities(&mut self.ecs);
+
+        // Place the player and update resources
+        let (player_x, player_y) = (player_start.x, player_start.y);
+        let mut player_position = self.ecs.write_resource::<Point>();
+        *player_position = Point::new(player_x, player_y);
+        let mut position_components = self.ecs.write_storage::<Position>();
+        let player_entity = self.ecs.fetch::<Entity>();
+        let player_pos_comp = position_components.get_mut(*player_entity);
+        if let Some(player_pos_comp) = player_pos_comp {
+            player_pos_comp.x = player_x;
+            player_pos_comp.y = player_y;
+        }
+
+        // Mark the player's visibility as dirty
+        let mut viewshed_components = self.ecs.write_storage::<Viewshed>();
+        let vs = viewshed_components.get_mut(*player_entity);
+        if let Some(vs) = vs {
+            vs.dirty = true;
         }
     }
 }
@@ -348,7 +336,7 @@ impl GameState for State {
                 // --------------------render ---------------------------------------------------
                 // 从world 中得到地图数据
                 // let map = self.ecs.fetch::<Map>();
-                draw_map(&self.ecs, ctx);
+                draw_map(&self.ecs.fetch::<Map>(), ctx);
                 {
                     // get entity with component 通过组件找到实体 ，这里 是玩家和怪物
                     let positions = self.ecs.read_storage::<Position>();
@@ -382,6 +370,27 @@ impl GameState for State {
 
         // 游戏进行时的各种运行状态的匹配
         match newrunstate {
+            RunState::MapGeneration => {
+                // 如何没有开启地图的可视化加载，直接转到游戏的下一个运行状态
+                if !SHOW_MAPGEN_VISUALIZER {
+                    newrunstate = self.mapgen_next_state.unwrap();
+                }
+
+                // 清空屏幕
+                ctx.cls();
+                draw_map(&self.ecs.fetch::<Map>(), ctx);
+
+                // 否则，逐渐加载出地图
+                // 帧持续时间
+                self.mapgen_timer += ctx.frame_time_ms;
+                if self.mapgen_timer > 300.0 {
+                    self.mapgen_timer = 0.0;
+                    self.mapgen_index += 1;
+                    if self.mapgen_index >= self.mapgen_history.len() {
+                        newrunstate = self.mapgen_next_state.unwrap();
+                    }
+                }
+            }
             RunState::PreRun => {
                 // run system dispatch system
                 self.run_systems();
@@ -390,7 +399,7 @@ impl GameState for State {
             }
             RunState::AwaitingInput => {
                 // 怪物只会在玩家移动是考虑做什么
-                self.runstate = player_input(self, ctx);
+                newrunstate = player_input(self, ctx);
             }
             // 玩家 回合 和 怪物 回合
             RunState::PlayerTurn => {
@@ -577,28 +586,6 @@ impl GameState for State {
                 } else {
                     // 将地图一行行的揭开
                     newrunstate = RunState::MagicMapReveal { row: row + 1 }
-                }
-            }
-
-            RunState::MapGeneration{
-                // 如何没有开启地图的可视化加载，直接转到游戏的下一个运行状态
-                if !SHOW_MAPGEN_VISUALIZER =>{
-                    newrunstate = self.mapgen_next_state.unwrap();
-                }
-
-                // 清空屏幕
-                ctx.cls();
-                draw_map(&self.ecs.fetch::<Map>(), ctx);
-
-                // 否则，逐渐加载出地图
-                // 帧持续时间
-                self.mapgen_timer += ctx.frame_time_ms;
-                if self.mapgen_timer > 300.0 {
-                    self.mapgen_timer = 0.0;
-                    self.mapgen_index += 1;
-                    if self.mapgen_index >= self.mapgen_history.len() {
-                        newrunstate = self.mapgen_next_state.unwrap();
-                    }
                 }
             }
         }

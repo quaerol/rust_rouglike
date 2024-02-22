@@ -5,6 +5,7 @@ use crate::spawner;
 use crate::Position;
 use crate::Rect;
 use crate::TileType;
+use crate::SHOW_MAPGEN_VISUALIZER;
 
 use super::Map;
 use super::MapBuilder;
@@ -18,7 +19,7 @@ pub struct SimpleMapBuilder {
     starting_position: Position,
     depth: i32,
     rooms: Vec<Rect>,
-    history: Vec<Map>
+    history: Vec<Map>,
 }
 impl SimpleMapBuilder {
     pub fn new(new_depth: i32) -> SimpleMapBuilder {
@@ -27,6 +28,7 @@ impl SimpleMapBuilder {
             starting_position: Position { x: 0, y: 0 },
             depth: new_depth,
             rooms: Vec::new(),
+            history: Vec::new(),
         }
     }
     fn rooms_and_corridors(&mut self) {
@@ -107,7 +109,7 @@ impl MapBuilder for SimpleMapBuilder {
         if SHOW_MAPGEN_VISUALIZER {
             let mut snapshot = self.map.clone();
             for v in snapshot.revealed_tiles.iter_mut() {
-                // 
+                //
                 *v = true;
             }
             self.history.push(snapshot);
