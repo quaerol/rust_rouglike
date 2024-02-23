@@ -1226,7 +1226,6 @@ impl Cell {
             visited: false
         }
     }
-}
 ```
 
 在我们的迷宫算法中， Cell 是 Grid 的一部分。
@@ -1282,7 +1281,8 @@ loop 开始
     6 如果 next 没有值（它等于 None ）
         1 如果 backtrace 不为空，我们将 current 设置为 backtrace 列表中的第一个值。
         2 如果 backtrace 为空，我们就完成了 - 所以我们 break 退出循环。
-    7 最后，我们调用 copy_to_map - 将迷宫复制到地图，并为迭代地图生成渲染器拍摄快照。
+    7 最后，调用 copy_to_map - 将迷宫复制到地图，并为迭代地图生成渲染器拍摄快照。
+
 
 前几次迭代将获得一个未访问过的邻居，在迷宫中开辟一条清晰的路径。一路上的每一步，我们访问过的单元格都会添加到 backtrace 中。这实际上是一次醉酒穿越迷宫，但确保我们无法返回牢房。
 当我们到达没有邻居的点时（我们已经到达迷宫的尽头），算法会将 current 更改为 backtrace 列表中的第一个条目。然后它会从那里随机行走，填充更多的单元格。
@@ -1303,10 +1303,185 @@ let start_idx = self.map.xy_idx(self.starting_position.x, self.starting_position
 self.take_snapshot();
 
 
-
 开会 一个人专门记录，把一些东西敲定，然后参考其他的文档
 
 
+## 4.8 Diffusion-Limited Aggregation 扩散有限聚合
+扩散有限聚合（DLA）是醉酒行走的受限形式的一个奇特名称，
+它制作看起来很有机的地图，更多地强调中心区域和从中出来的“支臂”。通过一些技巧，可以让它看起来很陌生——或者很真实
+
+### 1 Scaffolding  脚手架
+建一个新文件 map_builders/dla.rs 并将之前项目中的脚手架放入其中。我们将构建器命名为 DLABuilder 。我们还将保留 voronoi 生成代码，它将在此应用程序中正常工作
+
+### 2 Algorithm Tuning Knobs  算法调节旋钮
+向构建器 builder 添加参数 parameter 的想法。我们将对 DLA 再次执行相同的操作 - 有一些算法变体(参数不同)可以生成不同的地图样式。
+
+一旦我们掌握了算法及其变体，我们将创建一些类型构造函数！
+
+### 3 Walking Inwards 向内走 算法
+扩散限制聚合最基本的形式是这样工作的
+    1 dig a "seed" area around your central starting point
+    2 while the number of floor tiles is less than your dersired total 虽然地砖数量少于您想要的总数
+        1 select a starting point at random for your digger 为挖掘机 随机选择一个起点
+        2 use the "drunkard walk" algorithm to move randomly 使用醉汉行走算法随移动
+        3 if the digger hit a floor tile, then the previous tile they in also becomes a floor and the digger
+          stops 如果挖掘机遇到 floor 图块，之前的图块也变成floor, 然后这个挖掘机停止
+
+modify build function ，添加对不同算法的匹配
+
+### 4 walking outwards 向外行走
+向内走的算法的变体 反转了向内走算法的一部分过程
+a second variant of this algorithm reverses part of the process
+    1 dig a seed area around your central starting point 在你的中心起点周围挖一个“种子”区域。
+    2 地砖数量少于您想要的总数
+        1 将挖掘机设置到起始中心位置。
+        2 使用“醉汉行走”算法随机移动。
+        3 如果挖掘机撞到墙砖，那么该砖就会变成地板 - 然后挖掘机就会停止。
+
+挖掘者不是向内行进 marching inwards，而是向外行进 marching outwards 。实现起来非常简单，可以添加到 build 中的 match 算法序列中
+
+向内行进和向外行进 前者的判定的条件是Wall, 后者的判定的条件是Floor
+
+### 5 central attractor 中心吸引子
+这个变体也非常相似，但略有不同。您的粒子不是随机移动，而是从随机点向中间移动
+
+1 在你的中心起点周围挖一个“种子”区域。
+2 当地砖数量少于您想要的总数
+    1 为您的挖掘机随机选择一个起点。
+    2 绘制一条到地图中心的线并保留它。
+    3 横过线。如果挖掘机撞到了地砖，那么他们之前所在的地砖也变成了地板，挖掘机就会停止。
+
+### 6 Implementing Symmetry  实现对称性
+symmetry can transform a random map into something that looks designed - but quite alien. it often looks 
+quite insectoid 昆虫 or reminiscent of space invaders enemy.
+
+modify the paint function to handle symmetry
+
+使用较大的画笔可确保您不会获得太多 1x1 区域（导航起来可能会很麻烦），并且使地图看起来更有计划性。brush_size: 2,
+
+### 7 Randomizing the map builder, once again
+modify random_builder in map_builders/mod.rs to actually be random once more - and offer even more types of map!
+
+本章介绍了另一个非常灵活的地图构建器。非常适合制作感觉像是从岩石中雕刻出来的地图（或从森林中凿出、从小行星上开采等），这是在游戏中引入多样性的另一种好方法。
+
+## 4.9 Adding Symmetry and Brush Size as Library Functions
+在上一章扩散限制聚合中，我们介绍了地图构建的两个新概念：对称性和画笔大小。这些很容易应用于其他算法，因此我们将花一些时间将它们移至库函数（在 map_builders/common.rs 中），使它们通用，并演示它们如何改变醉汉的行走。
+
+### 1 building the library versions 构建版本库
+将 DLASymmetry 枚举从 dla.rs 移出并移入 common.rs 。更改其名称为Symmetry ，不再将其绑定到特定算法
+
+### 2 Modifying Drunkard's Walk to use it
+修改 dla.rs drunkard.rs 应用对称性
+
+### 3 Making a wider-carving drunk
+隧道更宽
+
+### 4 Adding Symmetry  添加对称性
+与 DLA 一样，对称的醉汉也能制作出看起来很有趣的地图。
+
+将向 drunkard.rs 添加一个新的构造函数fat_passages
+
+与 DLA 一样，对称的醉汉也能制作出看起来很有趣的地图。添加一个构造函数 fearful_symmetry
+
+### Restoring Randomness Once More
+
+本章向游戏程序员展示了一个非常有用的工具：找到一个方便的算法，使其通用，并在代码的其他部分使用它。很难预先准确猜测您需要什么（并且有很多话要说“您不会需要它” - 当您确实需要它们时才实现），因此它是我们武器库中的一个宝贵武器，能够快速重构我们的代码以供重用
+
+## 4.10 Voronoi（Voronoi 多边形） Hive(蜂巢)/Cell Maps Voronoi 蜂巢/细胞图
+
+我们之前在生成位置中已经接触过 Voronoi 图。
+在本节中，我们将使用它们来制作地图。该算法基本上将地图细分为多个区域，并在它们之间放置墙壁。结果有点像蜂巢。您可以使用距离/邻接算法来调整结果。
+
+### 1 Scaffolding  脚手架
+我们将像前面的章节一样制作脚手架，制作带有结构 VoronoiBuilder 的 voronoi.rs 。
+
+### 2 Building a Voronoi Diagram 构建 Voronoi 图
+在之前的用法中，我们浏览了如何实际制作 Voronoi 图 - 并依赖于 rltk 内的 FastNoise 库。
+是如何工作的——并且提供了非常有限的调整它的机会。所以 - 我们会自己实现一遍这个逻辑
+
+制造一些 Voronoi 噪声的第一步是填充一组“种子”。这些是地图上随机选择的（但不重复）点。我们将使种子数量成为一个变量，以便稍后对其进行调整。
+
+### 3 Tweaking the Hive 调整蜂巢
+有两个明显的变量需要向构建器公开：种子数量和要使用的距离算法。将更新结构签名以包含以下内容
+
+## 4.11 Wave Function Collapse 波函数崩溃
+ Wave Function Collapse (WFC) exploded onto the procedural generation scene
+ 波函数崩溃（WFC）突然出现在程序生成场景中
+
+从头开始实现波函数折叠 - 并将其应用于制作有趣的 Roguelike 关卡
+
+一个包含原始算法的板条箱crate （ wfc ，伴随着 wfc-image ）；
+
+### 1 So what does WFC really do?
+Wave Function Collapse 与我们迄今为止使用的地图生成算法不同，它实际上并不制作地图，它获取源数据（我们将使用其他地图！）
+扫描它们，并构建一个新地图，其中包含专门由源数据制作的元素。它分几个阶段运作
+    1 
+
+
+“波函数塌缩”这个名字指的是量子物理学的思想，即粒子在你观察之前可能实际上并不具有状态。
+在算法中，直到您选择一个进行检查之前，图块并不会真正合并在一起，但事实上这个名字是营销的胜利
+该算法就是所谓的求解器 - 给定一组约束，它会迭代可能的解决方案，直到解决约束。
+
+### 2 Getting started: Rust support for complex modules
+我们之前的所有算法都足够小，可以放入一个源代码文件中，而无需进行过多的分页来查找相关的代码位。
+波函数折叠非常复杂，值得将其分解为多个文件 - 与 map_builders 模块分解为 module 的情况大致相同 - WFC 将分为自己的文件 module 。该模块仍将位于 map_builders 内部 - 因此在某种程度上它实际上是一个子模块。
+
+Rust 可以很容易地将任何模块分解为多个文件：您在父模块内创建一个目录，并在其中放入一个名为 mod.rs 的文件。然后，您可以将更多文件放入该文件夹中，只要启用它们（使用 mod myfile ）并使用内容（使用 use myfile::MyElement ），它就像单个文件一样工作。
+
+在您的 map_builders 目录中创建一个名为 waveform_collapse 的新目录。添加一个文件 mod.rs 到其中。
+
+
+
+如果您 cargo run 它，这将为您提供一张空地图（所有墙壁） - 但这是一个很好的起点。
+
+### 3 Loading the source image - REX Paint
+在第 2 节中我们加载了一个 REX Paint 文件以用作主菜单屏幕
+我们将在这里做类似的事情，但我们将把它变成一个可玩的地图。
+这是一个故意设计的奇怪的地图，以帮助说明您可以使用此算法做什么。这是 REX Paint 中的原件：
+![alt text](../img/rex_paint.png)
+
+这些文件位于 resources 目录中, 
+REX Paint 文件很小（分别为 102k 和 112k）
+为了使访问它们更容易 - 并避免在发布完成的游戏时将它们与可执行文件一起发送,将文件嵌入到游戏中
+
+```
+rltk::embedded_resource!(WFC_DEMO_IMAGE2, "../../resources/wfc-demo2.xp");
+```
+修改 rex_assets.rs 嵌入新文件
+
+
+最后,加载地图本身！在 waveform_collapse 目录中，创建一个新文件： image_loader.rs
+
+
+
+
+
+
+
+
+
+
+
+
+这个时候应该把一个组里面的人拉去吃一顿饭，这样做起事来，大家才会更加卖力，而且一些小功劳可以适当给下面的组员，
+想法，一个想法，指明做事的方向，如果做事的方向不对，那么不是浪费了大家的精力，
+
+做事情之前开个会，把做事情的方向明确，每个人都说话，都发表意见，最后整合平衡大家的意见，或者说服从多数，这样，每个人都会觉得自己参与其中，
+
+开班，学校中间会赚钱多少，可以获得怎样的成绩，你又怎样的好处，
+可以将讲故事，说某个学校的老师，这样过后，怎么怎么样，赚了多少钱，生活的品质得到提高
+是不是可以和托管结合起来，托管起来后，你可以把学生介绍给什么，
+
+这是第一步，让老师认为自己可以有利可图，那么老师自然会找到学校，找到学生的家长，和学校和家长沟通策略，我们可以一起想法
+
+每个人的需求是什么，钱，可以作为东西的平替，或者可以置换为其他的东西，除了身体健康，命，
+
+其实人都很无聊，想要做一些其他事情，或者找些乐子，
+
+男人是孩子，女人，
+女人是孩子，或者钱
+老人是子女，身体
+小孩是玩，
 
 
 
