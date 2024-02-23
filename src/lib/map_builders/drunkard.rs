@@ -18,6 +18,9 @@ pub struct DrunkardSettings {
     // 醉汉昏倒的时间
     pub drunken_lifetime: i32,
     pub floor_percent: f32,
+    // 画笔和对称性
+    pub brush_size: i32,
+    pub symmetry: Symmetry
 }
 
 pub struct DrunkardsWalkBuilder {
@@ -85,6 +88,8 @@ impl DrunkardsWalkBuilder {
                 spawn_mode: DrunkSpawnMode::StartingPoint,
                 drunken_lifetime: 400,
                 floor_percent: 0.5,
+                brush_size: 1,
+                symmetry: Symmetry::None
             },
         }
     }
@@ -99,6 +104,8 @@ impl DrunkardsWalkBuilder {
                 spawn_mode: DrunkSpawnMode::Random,
                 drunken_lifetime: 400,
                 floor_percent: 0.5,
+                brush_size: 1,
+                symmetry: Symmetry::None
             },
         }
     }
@@ -113,10 +120,48 @@ impl DrunkardsWalkBuilder {
                 spawn_mode: DrunkSpawnMode::Random,
                 drunken_lifetime: 100,
                 floor_percent: 0.4,
+                brush_size: 1,
+                symmetry: Symmetry::None
             },
         }
     }
 
+    // 更宽的通道
+    pub fn fat_passages(new_depth : i32) -> DrunkardsWalkBuilder {
+        DrunkardsWalkBuilder{
+            map : Map::new(new_depth),
+            starting_position : Position{ x: 0, y : 0 },
+            depth : new_depth,
+            history: Vec::new(),
+            noise_areas : HashMap::new(),
+            settings : DrunkardSettings{
+                spawn_mode: DrunkSpawnMode::Random,
+                drunken_lifetime: 100,
+                floor_percent: 0.4,
+                brush_size: 2,
+                symmetry: Symmetry::None
+            }
+        }
+    }
+
+    // 对称的醉汉也能制作出看起来很有趣的地图
+    pub fn fearful_symmetry(new_depth : i32) -> DrunkardsWalkBuilder {
+        DrunkardsWalkBuilder{
+            map : Map::new(new_depth),
+            starting_position : Position{ x: 0, y : 0 },
+            depth : new_depth,
+            history: Vec::new(),
+            noise_areas : HashMap::new(),
+            settings : DrunkardSettings{
+                spawn_mode: DrunkSpawnMode::Random,
+                drunken_lifetime: 100,
+                floor_percent: 0.4,
+                brush_size: 1,
+                // 使用对称
+                symmetry: Symmetry::Both
+            }
+        }
+    }
     #[allow(clippy::map_entry)]
     fn build(&mut self) {
         let mut rng = RandomNumberGenerator::new();
@@ -177,7 +222,8 @@ impl DrunkardsWalkBuilder {
                 if self.map.tiles[drunk_idx] == TileType::Wall {
                     did_something = true;
                 }
-                // 用DownStairs; 表示该符号是
+                // 挖掘隧道
+                paint(&mut self.map, self.settings.symmetry, self.settings.brush_size, drunk_x, drunk_y);
                 self.map.tiles[drunk_idx] = TileType::DownStairs;
 
                 // 醉汉下一步的方向

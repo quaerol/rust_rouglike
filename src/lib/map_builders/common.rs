@@ -7,6 +7,11 @@ use std::{
 
 // 通用代码
 
+// Symmetry 对称性
+#[derive(PartialEq, Copy, Clone)]
+pub enum DLASymmetry { None, Horizontal, Vertical, Both }
+
+
 // romm is a rect, map 中的rooms 存储的是应用到map 中的rooms
 pub fn apply_room_to_map(map: &mut Map, room: &Rect) {
     for y in room.y1 + 1..room.y2 {
@@ -106,4 +111,68 @@ pub fn generate_voronoi_spawn_regions(
     }
 
     noise_areas
+}
+//  绘制函数
+// 画笔的实现, 处理对称性
+fn paint(map:&mut Map,mode:Symmetry,brush_size:i32,x:i32,y:i32){
+    // 匹配对称性设置
+    match mode{
+        Symmetry::None =>  apply_paint(map, brush_size, x, y),
+        Symmetry::Horizontal => {
+            let center_x = self.map.width /2;
+            if x == center_x {
+                apply_paint(map, brush_size, x, y),
+            }else {
+                // 该点与中心点的距离，然后挖掘中心点两边的对称点
+                let dist_x = i32::abs(center_x - x);
+                apply_paint(map, brush_size, center_x + dist_x, y);
+                apply_paint(map, brush_size, center_x - dist_x, y);
+            }
+        }
+        Symmetry::Vertical => {
+            let center_y = self.map.height / 2;
+            if y == center_y {
+                apply_paint(map, brush_size, x, y);
+            } else {
+                let dist_y = i32::abs(center_y - y);
+                apply_paint(map, brush_size, x, center_y + dist_y);
+                apply_paint(map, brush_size, x, center_y - dist_y);
+            }
+        }
+        Symmetry::Both => {
+            let center_x = self.map.width / 2;
+            let center_y = self.map.height / 2;
+            if x == center_x && y == center_y {
+                apply_paint(map, brush_size, x, y);
+            } else {
+                let dist_x = i32::abs(center_x - x);
+                apply_paint(map, brush_size, center_x + dist_x, y);
+                apply_paint(map, brush_size, center_x - dist_x, y);
+                let dist_y = i32::abs(center_y - y);
+                apply_paint(map, brush_size, x, center_y + dist_y);
+                apply_paint(map, brush_size, x, center_y - dist_y);
+            }
+        }
+    }
+}
+fn apply_paint(map: &mut Map, brush_size: i32, x: i32, y: i32) {
+    match brush_size {
+        1 => {
+            let digger_idx = map.xy_idx(x, y);
+            map.tiles[digger_idx] = TileType::Floor;
+        }
+
+        _ => {
+            let half_brush_size = brush_size / 2;
+            //  循环遍历画笔大小并进行绘制，执行边界检查以确保我们不会在地图上绘制。
+            for brush_y in y-half_brush_size .. y+half_brush_size {
+                for brush_x in x-half_brush_size .. x+half_brush_size {
+                    if brush_x > 1 && brush_x < map.width-1 && brush_y > 1 && brush_y < map.height-1 {
+                        let idx = map.xy_idx(brush_x, brush_y);
+                        map.tiles[idx] = TileType::Floor;
+                    }
+                }
+            }
+        }
+    }
 }

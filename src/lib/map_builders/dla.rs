@@ -8,10 +8,6 @@ use std::collections::HashMap;
 #[derive(PartialEq, Copy, Clone)]
 pub enum DLAAlgorithm { WalkInwards, WalkOutwards, CentralAttractor }
 
-// Symmetry 对称性
-#[derive(PartialEq, Copy, Clone)]
-pub enum DLASymmetry { None, Horizontal, Vertical, Both }
-
 
 pub struct DLABuilder {
     map: Map,
@@ -24,7 +20,7 @@ pub struct DLABuilder {
     // 指定我们一次性“绘制”到地图上的地砖数量
     brush_size: i32,
     // 对称性可用于通过该算法产生一些漂亮的结果
-    symmetry: DLASymmetry,
+    symmetry: Symmetry,
     // 添加了“醉汉之行”章节中的 floor_percent
     floor_percent: f32
 }
@@ -186,7 +182,7 @@ impl DLABuilder {
                         digger_idx = self.map.xy_idx(digger_x, digger_y);
                     }
                     // 画一个通道，将tile 变为Floor
-                    self.paint(prev_x,prev_y);
+                    paint(&mut self.map, self.symmetry, self.brush_size, prev_x, prev_y);
                 }
                 DLAAlgorithm::WalkOutwards => {
                     let mut digger_x = self.starting_position.x;
@@ -203,7 +199,7 @@ impl DLABuilder {
                         }
                         digger_idx = self.map.xy_idx(digger_x, digger_y);
                     }
-                    self.paint(digger_x, digger_y);
+                    paint(&mut self.map, self.symmetry, self.brush_size, prev_x, prev_y);
                 }
                 DLAAlgorithm::CentralAttractor => {
                     let mut digger_x = rng.roll_dice(1, self.map.width - 3) + 1;
@@ -228,10 +224,13 @@ impl DLABuilder {
                         path.remove(0);
                         digger_idx = self.map.xy_idx(digger_x, digger_y);
                     }
-                    self.paint(prev_x, prev_y);
+                    paint(&mut self.map, self.symmetry, self.brush_size, prev_x, prev_y);
                 }
                 _ => {}
             }
+            self.take_snapshot();
+            
+            floor_tile_count = self.map.tiles.iter().filter(|a| **a == TileType::Floor).count();
         }
 
         // Find all tiles we can reach from the starting point
@@ -245,72 +244,4 @@ impl DLABuilder {
         // Now we build a noise map for use in spawning entities later
         self.noise_areas = generate_voronoi_spawn_regions(&self.map, &mut rng);
     }
-
-    // 画笔的实现, 处理对称性
-    fn paint(&mut self,x:i32,y:i32){
-        let digger_idx = self.map.xy_idx(x);
-        // 匹配对称性设置
-        match self.symmetry{
-            DLASymmetry::None => self.apply_paint(x,y),
-            DLASymmetry::Horizontal => {
-                let center_x = self.map.width /2;
-                if x == center_x {
-                    self.apply_paint(x, y);    
-                }else {
-                    // 该点与中心点的距离，然后挖掘中心点两边的对称点
-                    let dist_x = i32::abs(center_x - x);
-                    self.apply_paint(center_x + dist_x, y);
-                    self.apply_paint(center_x - dist_x, y);
-                }
-            }
-            DLASymmetry::Vertical => {
-                let center_y = self.map.height / 2;
-                if y == center_y {
-                    self.apply_paint(x, y);
-                } else {
-                    let dist_y = i32::abs(center_y - y);
-                    self.apply_paint(x, center_y + dist_y);
-                    self.apply_paint(x, center_y - dist_y);
-                }
-            }
-            DLASymmetry::Both => {
-                let center_x = self.map.width / 2;
-                let center_y = self.map.height / 2;
-                if x == center_x && y == center_y {
-                    self.apply_paint(x, y);
-                } else {
-                    let dist_x = i32::abs(center_x - x);
-                    self.apply_paint(center_x + dist_x, y);
-                    self.apply_paint(center_x - dist_x, y);
-                    let dist_y = i32::abs(center_y - y);
-                    self.apply_paint(x, center_y + dist_y);
-                    self.apply_paint(x, center_y - dist_y);
-                }
-            }
-        }
-    }
-
-    fn apply_paint(&self, x: i32, y:i32){
-        // 画笔的大小
-        match self.brush_size {
-            1 => {
-                let digger_idx = self.map.xy_idx(x, y);
-                self.map.tiles[digger_idx] = TileType::Floor;
-            }
-            // 循环遍历画笔大小并进行绘制，执行边界检查以确保我们不会在地图上绘制。
-            _=>{
-                let half_brush_size = self.brush_size / 2;
-                for brush_y in y-half_brush_size .. y+half_brush_size {
-                    for brush_x in x-half_brush_size .. x+half_brush_size {
-                        if brush_x > 1 && brush_x < self.map.width-1 && brush_y > 1 && brush_y < self.map.height-1 {
-                            let idx = self.map.xy_idx(brush_x, brush_y);
-                            self.map.tiles[idx] = TileType::Floor;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
 }

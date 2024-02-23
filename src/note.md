@@ -1362,6 +1362,55 @@ modify random_builder in map_builders/mod.rs to actually be random once more - a
 
 本章介绍了另一个非常灵活的地图构建器。非常适合制作感觉像是从岩石中雕刻出来的地图（或从森林中凿出、从小行星上开采等），这是在游戏中引入多样性的另一种好方法。
 
+## 4.9 Adding Symmetry and Brush Size as Library Functions
+在上一章扩散限制聚合中，我们介绍了地图构建的两个新概念：对称性和画笔大小。这些很容易应用于其他算法，因此我们将花一些时间将它们移至库函数（在 map_builders/common.rs 中），使它们通用，并演示它们如何改变醉汉的行走。
+
+### 1 building the library versions 构建版本库
+将 DLASymmetry 枚举从 dla.rs 移出并移入 common.rs 。更改其名称为Symmetry ，不再将其绑定到特定算法
+
+### 2 Modifying Drunkard's Walk to use it
+修改 dla.rs drunkard.rs 应用对称性
+
+### 3 Making a wider-carving drunk
+隧道更宽
+
+### 4 Adding Symmetry  添加对称性
+与 DLA 一样，对称的醉汉也能制作出看起来很有趣的地图。
+
+将向 drunkard.rs 添加一个新的构造函数fat_passages
+
+与 DLA 一样，对称的醉汉也能制作出看起来很有趣的地图。添加一个构造函数 fearful_symmetry
+
+### Restoring Randomness Once More
+
+本章向游戏程序员展示了一个非常有用的工具：找到一个方便的算法，使其通用，并在代码的其他部分使用它。很难预先准确猜测您需要什么（并且有很多话要说“您不会需要它” - 当您确实需要它们时才实现），因此它是我们武器库中的一个宝贵武器，能够快速重构我们的代码以供重用
+
+## 4.10 Voronoi（Voronoi 多边形） Hive(蜂巢)/Cell Maps Voronoi 蜂巢/细胞图
+
+我们之前在生成位置中已经接触过 Voronoi 图。
+在本节中，我们将使用它们来制作地图。该算法基本上将地图细分为多个区域，并在它们之间放置墙壁。结果有点像蜂巢。您可以使用距离/邻接算法来调整结果。
+
+### 1 Scaffolding  脚手架
+我们将像前面的章节一样制作脚手架，制作带有结构 VoronoiBuilder 的 voronoi.rs 。
+
+### 2 Building a Voronoi Diagram 构建 Voronoi 图
+在之前的用法中，我们浏览了如何实际制作 Voronoi 图 - 并依赖于 rltk 内的 FastNoise 库。
+是如何工作的——并且提供了非常有限的调整它的机会。所以 - 我们会自己实现一遍这个逻辑
+
+制造一些 Voronoi 噪声的第一步是填充一组“种子”。这些是地图上随机选择的（但不重复）点。我们将使种子数量成为一个变量，以便稍后对其进行调整。
+
+### 3 Tweaking the Hive 调整蜂巢
+有两个明显的变量需要向构建器公开：种子数量和要使用的距离算法。将更新结构签名以包含以下内容
+
+
+
+
+
+
+
+
+
+
 
 
 这个时候应该把一个组里面的人拉去吃一顿饭，这样做起事来，大家才会更加卖力，而且一些小功劳可以适当给下面的组员，
