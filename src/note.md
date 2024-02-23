@@ -1402,6 +1402,54 @@ modify random_builder in map_builders/mod.rs to actually be random once more - a
 ### 3 Tweaking the Hive 调整蜂巢
 有两个明显的变量需要向构建器公开：种子数量和要使用的距离算法。将更新结构签名以包含以下内容
 
+## 4.11 Wave Function Collapse 波函数崩溃
+ Wave Function Collapse (WFC) exploded onto the procedural generation scene
+ 波函数崩溃（WFC）突然出现在程序生成场景中
+
+从头开始实现波函数折叠 - 并将其应用于制作有趣的 Roguelike 关卡
+
+一个包含原始算法的板条箱crate （ wfc ，伴随着 wfc-image ）；
+
+### 1 So what does WFC really do?
+Wave Function Collapse 与我们迄今为止使用的地图生成算法不同，它实际上并不制作地图，它获取源数据（我们将使用其他地图！）
+扫描它们，并构建一个新地图，其中包含专门由源数据制作的元素。它分几个阶段运作
+    1 
+
+
+“波函数塌缩”这个名字指的是量子物理学的思想，即粒子在你观察之前可能实际上并不具有状态。
+在算法中，直到您选择一个进行检查之前，图块并不会真正合并在一起，但事实上这个名字是营销的胜利
+该算法就是所谓的求解器 - 给定一组约束，它会迭代可能的解决方案，直到解决约束。
+
+### 2 Getting started: Rust support for complex modules
+我们之前的所有算法都足够小，可以放入一个源代码文件中，而无需进行过多的分页来查找相关的代码位。
+波函数折叠非常复杂，值得将其分解为多个文件 - 与 map_builders 模块分解为 module 的情况大致相同 - WFC 将分为自己的文件 module 。该模块仍将位于 map_builders 内部 - 因此在某种程度上它实际上是一个子模块。
+
+Rust 可以很容易地将任何模块分解为多个文件：您在父模块内创建一个目录，并在其中放入一个名为 mod.rs 的文件。然后，您可以将更多文件放入该文件夹中，只要启用它们（使用 mod myfile ）并使用内容（使用 use myfile::MyElement ），它就像单个文件一样工作。
+
+在您的 map_builders 目录中创建一个名为 waveform_collapse 的新目录。添加一个文件 mod.rs 到其中。
+
+
+
+如果您 cargo run 它，这将为您提供一张空地图（所有墙壁） - 但这是一个很好的起点。
+
+### 3 Loading the source image - REX Paint
+在第 2 节中我们加载了一个 REX Paint 文件以用作主菜单屏幕
+我们将在这里做类似的事情，但我们将把它变成一个可玩的地图。
+这是一个故意设计的奇怪的地图，以帮助说明您可以使用此算法做什么。这是 REX Paint 中的原件：
+![alt text](../img/rex_paint.png)
+
+这些文件位于 resources 目录中, 
+REX Paint 文件很小（分别为 102k 和 112k）
+为了使访问它们更容易 - 并避免在发布完成的游戏时将它们与可执行文件一起发送,将文件嵌入到游戏中
+
+```
+rltk::embedded_resource!(WFC_DEMO_IMAGE2, "../../resources/wfc-demo2.xp");
+```
+修改 rex_assets.rs 嵌入新文件
+
+
+最后,加载地图本身！在 waveform_collapse 目录中，创建一个新文件： image_loader.rs
+
 
 
 
