@@ -1181,6 +1181,7 @@ Building some preset constructors: open_area, open_halls, winding_passages
 ### 1 scaffolding 脚手架
 使用前一章的代码作为脚手架, 
 定义
+```
 pub struct MazeBuilder {
     map : Map,
     starting_position : Position,
@@ -1196,6 +1197,7 @@ impl MapBuilder for MazeBuilder{
 impl MazeBuilder{
 
 }
+```
 ### 2 actually building a maze
 Cyucelen's mazeGenerator, 这是一个有趣的算法，因为像许多迷宫算法一样，它假设墙壁是图块网格的一部分，而不是具有单独的墙壁实体。这不适用于我们正在使用的图块地图类型，因此我们以实际地图分辨率的一半生成网格，并根据网格中的 adjacency 墙邻接信息生成墙。
 
@@ -1224,11 +1226,13 @@ impl Cell {
             visited: false
         }
     }
+}
 ```
 
 在我们的迷宫算法中， Cell 是 Grid 的一部分。
 
 定义 Grid
+```
 struct Grid<'a> {
     width: i32,
     height: i32,
@@ -1237,7 +1241,7 @@ struct Grid<'a> {
     current: usize,
     rng : &'a mut RandomNumberGenerator
 }
-
+```
 <'a> 是生命周期说明符。我们必须指定一个，以便 Rust 的借用检查器可以确保在我们删除 RandomNumberGenerator 之前 Grid 不会过期
 
 A依赖于B，保证A不会被随意丢弃，所有需要在B上加生命周期
@@ -1250,7 +1254,7 @@ A依赖于B，保证A不会被随意丢弃，所有需要在B上加生命周期
  we want to use the random number generator built in the build function, so we store a reference to it here. Because obtaining a random number changes the content of the variable, we have to store a mutable reference. The really ugly &'a mut indicates that it is a reference, with the lifetime 'a (defined above) and is mutable/changeable.
 
  Grid 实现了相当多的方法。首先，构造函数 new
-
+```
 impl Grid{
     // 迭代网格的行和列，将新的Cell push 进 Grid cells 中，并按其位置进行编号
     fn new();
@@ -1265,7 +1269,7 @@ impl Grid{
     //  actual algorithm! 实际的迷宫生成算法
     fn generate_maze(&mut self, generator:&mut MazeBuilder);
 }
-
+```
 实际迷宫算法：
 loop 开始
     1 将 current 单元格中 visited 的值设置为 true
