@@ -14,7 +14,7 @@ pub const MAPHEIGHT: usize = 43;
 pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
 
 // 地图的类型，枚举
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq,Hash,Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,  // “#”符号
     Floor, // “.” 符号

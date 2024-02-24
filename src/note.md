@@ -1460,12 +1460,108 @@ rltk::embedded_resource!(WFC_DEMO_IMAGE2, "../../resources/wfc-demo2.xp");
 ### 4 Carving up our map into tiles
 WFC 的工作原理是将原始图像雕刻成块/图块，并可选择将它们沿不同方向翻转。它将这作为构建约束的第一部分——如何布局地图。所以现在我们需要开始雕刻我们的图像
 
-我们首先选择图块大小（chunk_size ）。现在将其设置为常量（稍后将变得可调整），并从 7 的大小开始 - 因为这是我们第二个 REX 演示文件中图块的大小。
+我们首先选择图块(组块)大小（chunk_size ）。现在将其设置为常量（稍后将变得可调整），并从 7 的大小开始 - 因为这是我们第二个 REX 演示文件中图块的大小。
 ![Alt text](../img/rex_paint2.png)
 
 调用一个稍后编写的函数：build_patterns
-
+1
+使用地图的tile 组成 图像中的图案 
 由于我们正在处理约束 constraints ，因此我们将在 map_builders/waveform_collapse 目录中创建一个新文件 - constraints.rs 。我们将创建一个名为 build_patterns 的函数：
+
+声明 build_patterns 函数，其中包含对源地图的引用的参数、要使用的 chunk_size （图块大小）以及用于标记的标志（ bool 变量） include_flipping 和 dedupe 。这些指示在读取地图源数据要使用哪些功能。我们返回一个 vector ，包含一系列不同 TileType 的 vector 。外容器容纳每个模式。内部向量包含构成模式本身的 TileType 。
+
+让 TileType 知道如何将自身转换为哈希值。 HashMap 使用“散列”（基本上是所包含值的校验和）来确定条目是否唯一，并帮助找到它。在 map.rs 中，我们可以简单地向 TileType 枚举添加一个派生属性：Hash
+
+This code should get you every 7x7 tile within your source file
+这段代码应该会为您提供源文件中的每个 7x7 图块
+
+2
+添加另一个函数： render_pattern_to_map
+这非常简单：迭代模式，然后复制到地图上的某个位置 - 由 start_x 和 start_y 坐标偏移。请注意，我们还将图块标记为 visible - 这将使渲染器以颜色显示我们的图块。
+
+将图块显示为 snapshot 系统的一部分即可。在 waveform_collapse/mod.rs 中添加一个新函数render_tile_gallery作为 WaveformCollapseBuilder 实现的一部分（位于 build 下方）。它是一个成员函数，因为它需要访问 take_snapshot 命令
+
+注释掉一些代码，这样它就不会因找不到起点而崩溃
+
+如果您现在 cargo run ，它将向您显示地图示例 2 中的图块图案
+
+请注意翻转如何为我们提供每个图块的多种变体。如果我们将图像加载代码更改为加载 wfc-demo1 （通过将加载器更改为 self.map = load_rex_map(self.depth, &rltk::rex::XpFile::from_resource("../../resources/wfc-demo1.xp").unwrap()); ），我们将获得手绘地图的块
+
+### 5 Building the constraints matrix 构建约束矩阵
+现在我们需要开始告诉算法如何将图块彼此相邻放置。我们可以简单地问“原始图像上它旁边是什么？”算法，但这会忽略 Roguelike 地图中的一个关键因素：连接性。我们对从 A 点到 B 点的能力比对整体美学更感兴趣！因此，我们需要编写一个考虑连接性的约束构建器。
+
+连接性的构建约束器
+
+新方法 patterns_to_constraints 的签名，以添加到 constraints.rs 中。我们还需要一个新类型和一个辅助函数。我们将在其他地方使用它们，因此我们将向 waveform_collapse 文件夹添加一个新文件 - common.rs （作为该模块通用的库）。
+
+文件包含 struct MapChunk 和 function tile_idx_in_chunk 
+
+在 constraints.rs 中写入 patterns_to_constraints 函数
+pub fn patterns_to_constraints(patterns: Vec<Vec<TileType>>, chunk_size : i32) -> Vec<MapChunk>;
+
+MapChunk 是一种模式，但添加了额外的退出和兼容性信息。因此，我们承诺，给定一组图案图形，我们将向其中添加所有导航信息，并将图案作为一组块返回。
+
+出口查找器工作正常：现在图像被分割并被渲染为地图，然后每个小块地图 存在 出口，可以到其他小块的地图
+
+### 6 Building the Solver 构建求解器
+你还记得以前长途旅行时可以买的逻辑题旧书吗？ “弗雷德是律师，玛丽是医生，吉姆失业了。弗雷德不能坐在失业者旁边，因为他很傲慢。玛丽喜欢每个人。你应该如何安排他们的座位呢？”这是求解器旨在帮助解决的约束问题类型的示例
+
+构建我们的地图没有什么不同 - 我们正在读取约束矩阵（我们在上面构建的）来确定我们可以在任何给定区域中放置哪些图块。因为它是 Roguelike 游戏，而且我们每次都想要不同的东西，所以我们希望注入inject一些随机性 - 并每次都获得不同但有效的地图。
+
+extend our build function to call a 假设的hypothetical solver
+
+制作一张新地图（全部都是Wall）， 在该循环内，我们为 constraints 矩阵的副本创建一个求解器（我们复制它，以防必须重复执行；否则，我们必须 move 它并再次 move ）。
+我们重复调用求解器的 iteration 函数，每次都拍摄快照 - 直到它报告已完成。如果 solver 放弃并说不可能，我们会再试一次。
+
+将 solver.rs 添加到 waveform_collapse 目录中。求解器需要保持自己的状态：也就是说，当它迭代时，它需要知道它已经走了多远。我们将通过将 Solver 放入 struct 来支持这一点，
+
+### 7 Reducing the chunk size 减少块大小
+将 CHUNK_SIZE 常量减少到 3 来显着改进生成的映射
+3x3 网格确实限制了您在地图上可以拥有的可变性！因此，我们将尝试使用块大小为 5 的 wfc-test1.xp ：
+
+### 8 Taking advantage of the ability to read other map types 利用读取其他地图类型的能力
+rather than loading one of out .xp files, ltes feed in the results of a CellularAutomata run, and uses
+that as the seed with a large 8 chunk, this is surprisingly easy with the structure we have ! in our build
+funciton, 将元胞自动机生成器生成的地图 作为 波函数崩塌算法的 图像资源
+
+在移除楼梯 - 因为元胞自动机生成器将放置一个楼梯，我们不希望到处都有楼梯！这给出了非常令人满意的结果：
+
+### 9 Improving adjacency 邻接- and increasing the risk of rejection!改善邻接关系 - 并增加拒绝的风险！
+
+### 10 Offering different build options to the game 
+为 random_builder 函数提供三种模式： TestMap （仅 REX Paint 贴图）和 Derived （在现有算法上运行）。因此，在 mod.rs 中，我们添加一个枚举 WaveformMode 并扩展我们的结构以保存一些相关数据：
+
+添加几个构造函数，使 random_builder 更容易不必了解 WFC 算法的内部结构
+
+### 11 cleaning up dead code warnings
+在函数定义上方添加注释 - #[allow(dead_code)] 来告诉编译器停止报出 "this function is never used" 的警告
+
+### 12 cleaning up unused embedded files 清理未使用的嵌入文件
+不再使用 wfc-test2.xp ，所以让我们从 rex-assets.rs 中删除它
+这可以在生成的二进制文件中节省一点空间（绝不是一件坏事：较小的二进制文件更适合 CPU 的缓存，并且通常运行得更快）。
+
+使用tile 来雕刻图像中的图案
+构建约束矩阵，chunk 之间的连接性
+构建求解器，确定我们可以在任何给定区域中放置哪些图块
+
+
+
+理解每一步做什么，总体的步骤是什么
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 这个时候应该把一个组里面的人拉去吃一顿饭，这样做起事来，大家才会更加卖力，而且一些小功劳可以适当给下面的组员，
 想法，一个想法，指明做事的方向，如果做事的方向不对，那么不是浪费了大家的精力，
@@ -1486,6 +1582,8 @@ WFC 的工作原理是将原始图像雕刻成块/图块，并可选择将它们
 女人是孩子，或者钱
 老人是子女，身体
 小孩是玩，
+
+学校展演，宣传，上级领导的指示
 
 
 
